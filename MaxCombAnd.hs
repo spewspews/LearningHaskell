@@ -1,3 +1,7 @@
+-- This is a solution to problem 2275. Largest Combination
+-- With Bitwise AND Greater Than Zero from LeetCode:
+-- https://leetcode.com/problems/largest-combination-with-bitwise-and-greater-than-zero/description/
+
 import Data.Bits ((.&.))
 import Data.List (foldl', sortBy)
 import qualified Data.Vector.Unboxed as V
