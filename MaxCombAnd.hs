@@ -22,8 +22,7 @@ maxCombAndSlow =
     . pow
 
 bitList :: (Integral a) => a -> [a]
-bitList 0 = []
-bitList i = i `mod` 2 : bitList (i `div` 2)
+bitList = map (`mod` 2) . takeWhile (> 0) . iterate (`div` 2)
 
 maxCombAnd :: [Int] -> Int
 maxCombAnd = V.maximum . foldl' addBits (V.replicate 32 0)
