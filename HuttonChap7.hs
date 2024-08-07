@@ -31,11 +31,13 @@ type Bit = Int
 bin2int :: [Bit] -> Int
 bin2int = foldr (\b x -> b + 2 * x) 0
 
-bin2int' :: [Bit] -> Int
-bin2int' = sum . zipWith (*) (iterate (* 2) 1)
+{-
+bin2int :: [Bit] -> Int
+bin2int = sum . zipWith (*) (iterate (* 2) 1)
+-}
 
 int2bin :: Int -> [Bit]
-int2bin = map (`mod` 2) . takeWhile (> 0) . iterate (`div` 2)
+int2bin = map (`mod` 2) . iterate (`div` 2)
 
 {-
 int2bin :: Int -> [Bit]
