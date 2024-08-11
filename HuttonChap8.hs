@@ -69,12 +69,12 @@ rmdups [] = []
 rmdups (x : xs) = x : rmdups (filter (/= x) xs)
 
 substs :: Prop -> [Subst]
-substs p = map fromList $ map (zip vs) $ bools $ length vs
+substs p = map (fromList . zip vs) $ bools $ length vs
   where
     vs = rmdups $ vars p
 
 isTaut :: Prop -> Bool
-isTaut p = all (\s -> evalP s p) $ substs p
+isTaut p = all (`evalP` p) $ substs p
 
 -- Abstract Machine
 
@@ -122,12 +122,11 @@ mult (Succ m) n = n `add` mult m n
 -- Exercise 2
 occursS' :: (Ord a) => a -> Tree a -> Bool
 occursS' x (Leaf y) = x == y
-occursS' x (Node l y r)
-  | c == EQ = True
-  | c == LT = occursS' x l
-  | c == GT = occursS' x r
-  where
-    c = compare x y
+occursS' x (Node l y r) =
+  case compare x y of
+    EQ -> True
+    LT -> occursS' x l
+    GT -> occursS' x r
 
 -- Exercise 3
 data Tree' a = Leaf' a | Node' (Tree' a) (Tree' a) deriving (Show)
@@ -138,20 +137,14 @@ nLeaves (Node' x y) = nLeaves x + nLeaves y
 
 balanced :: Tree' a -> Bool
 balanced (Leaf' _) = True
-balanced (Node' x y) = (abs $ nLeaves x - nLeaves y) <= 1
+balanced (Node' x y) = abs (nLeaves x - nLeaves y) <= 1
 
 -- Exercise 4
 split :: [a] -> ([a], [a])
-split xs = (take h xs, drop h xs)
-  where
-    h = length xs `div` 2
+split xs = splitAt (length xs `div` 2) xs
 
 balance :: [a] -> Tree' a
 balance [x] = Leaf' x
-balance xs
-  | null f = balance s
-  | otherwise = Node' (balance f) (balance s)
+balance xs = Node' (balance ys) (balance zs)
   where
-    sp = split xs
-    f = fst sp
-    s = snd sp
+    (ys, zs) = split xs
