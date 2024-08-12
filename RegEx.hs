@@ -37,4 +37,4 @@ match r s = go [0] [] $ s ++ ['\NUL']
       CHAR c' -> if c == c' then go ops (i + 1 : next) s else go ops next s
       FORK f g -> go (i + f : i + g : ops) next s
       END -> True
-    go cur _ "" = False
+    go _ _ "" = False
