@@ -1,4 +1,5 @@
-import Data.Vector (Vector, fromList, (!))
+import qualified Data.IntSet as S (IntSet, fromList, insert, member, toList)
+import qualified Data.Vector as V (Vector, fromList, (!))
 
 data Op
   = DOT
@@ -7,10 +8,10 @@ data Op
   | END
   deriving (Show, Ord, Eq, Read)
 
-type Regex = Vector Op
+type Regex = V.Vector Op
 
 parse :: String -> Regex
-parse = fromList . reverse . (END :) . fst . go [[]]
+parse = V.fromList . reverse . (END :) . fst . go [[]]
   where
     go opss "" = (concat opss, "")
     go (prevOps : opss) (c : cs) = case c of
@@ -31,13 +32,27 @@ parse = fromList . reverse . (END :) . fst . go [[]]
       where
         l = length prevOps
 
+data UL = UL S.IntSet [Int]
+
+empty :: UL
+empty = UL mempty []
+
+cons :: Int -> UL -> UL
+cons i ul@(UL s l) =
+  if S.member i s then ul else UL (S.insert i s) (i : l)
+
+infixr 5 `cons`
+
+fromList :: [Int] -> UL
+fromList l = UL s (S.toList s) where s = S.fromList l
+
 match :: Regex -> String -> Bool
-match r s = go [0] [] $ s ++ ['\NUL']
+match r s = go (fromList [0]) empty $ s ++ ['\NUL']
   where
-    go [] next (_ : cs) = go (0 : next) [] cs
-    go (i : ops) next s@(c : _) = case r ! i of
-      DOT -> go ops (i + 1 : next) s
-      CHAR c' -> if c == c' then go ops (i + 1 : next) s else go ops next s
-      FORK j k -> go (i + j : i + k : ops) next s
+    go (UL _ []) next (_ : cs) = go (0 `cons` next) empty cs
+    go (UL is (op : ops)) next s@(c : _) = case r V.! op of
+      DOT -> go (UL is ops) (op + 1 `cons` next) s
+      CHAR c' -> if c == c' then go (UL is ops) (op + 1 `cons` next) s else go (UL is ops) next s
+      FORK j k -> go (op + j `cons` op + k `cons` UL is ops) next s
       END -> True
     go _ _ "" = False
