@@ -38,6 +38,6 @@ match r s = go [0] [] $ s ++ ['\NUL']
     go (i : ops) next s@(c : _) = case r ! i of
       DOT -> go ops (i + 1 : next) s
       CHAR c' -> if c == c' then go ops (i + 1 : next) s else go ops next s
-      FORK f g -> go (i + f : i + g : ops) next s
+      FORK j k -> go (i + j : i + k : ops) next s
       END -> True
     go _ _ "" = False
