@@ -10,29 +10,23 @@ data Op
 type Regex = Vector Op
 
 parse :: String -> Regex
-parse = fromList . reverse . (END :) . concat . fst . go [[]]
+parse = fromList . reverse . (END :) . fst . go [[]]
   where
-    go ops "" = (ops, "")
-    go ops (c : cs) = case c of
-      '.' -> go ([DOT] : ops) cs
-      '*' -> go (([FORK (-l) 1] ++ op' ++ [FORK 1 (l + 2)]) : ops') cs
-        where
-          op' : ops' = ops
-          l = length op'
-      '+' -> go ([FORK (-l) 1] : ops) cs
-        where
-          l = length $ head ops
-      '?' -> go ((op' ++ [FORK 1 (l + 1)]) : ops') cs
-        where
-          op' : ops' = ops
-          l = length op'
+    go ops "" = (concat ops, "")
+    go (prevOps : opss) (c : cs) = case c of
+      '.' -> go ([DOT] : prevOps : opss) cs
+      '*' -> go (([FORK (-l) 1] ++ prevOps ++ [FORK 1 (l + 2)]) : opss) cs
+      '+' -> go ([FORK (-l) 1] : prevOps : opss) cs
+      '?' -> go ((prevOps ++ [FORK 1 (l + 1)]) : opss) cs
       '(' -> case s' of
-        (')' : cs') -> go (concat ops' : ops) cs'
+        (')' : cs') -> go (ops' : prevOps : opss) cs'
         _ -> error "Bad Regular Expression"
         where
           (ops', s') = go [[]] cs
-      ')' -> (ops, c : cs)
-      c -> go ([CHAR c] : ops) cs
+      ')' -> (concat (prevOps : opss), c : cs)
+      c -> go ([CHAR c] : prevOps : opss) cs
+      where
+        l = length prevOps
 
 match :: Regex -> String -> Bool
 match r s = go [0] [] $ s ++ ['\NUL']
