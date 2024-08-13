@@ -20,10 +20,13 @@ parse = fromList . reverse . (END :) . fst . go [[]]
       '?' -> go ((prevOps ++ [FORK 1 (l + 1)]) : opss) cs
       '(' -> case s of
         (')' : cs) -> go (ops : prevOps : opss) cs
-        _ -> error "Bad Regular Expression"
+        _ -> error "Bad regular expression"
         where
           (ops, s) = go [[]] cs
       ')' -> (concat (prevOps : opss), c : cs)
+      '\\' -> case cs of
+        (c : cs) -> go ([CHAR c] : prevOps : opss) cs
+        _ -> error "Bad regular expression"
       c -> go ([CHAR c] : prevOps : opss) cs
       where
         l = length prevOps
