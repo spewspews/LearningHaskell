@@ -6,7 +6,7 @@ data Op
   | CHAR Char
   | FORK Int Int
   | END
-  deriving (Show, Ord, Eq, Read)
+  deriving Show
 
 type Regex = Vector Op
 
@@ -38,14 +38,14 @@ empty :: State
 empty = State mempty []
 
 add :: Int -> State -> State
-add i ul@(State s l) =
-  if member i s then ul else State (insert i s) (i : l)
+add i st@(State s l) =
+  if member i s then st else State (insert i s) (i : l)
 
 match :: Regex -> String -> Bool
 match r s = go (add 0 empty) empty $ s ++ ['\NUL']
   where
     go State {ops = []} next (_ : cs) = go (add 0 next) empty cs
-    go cur@State {ops = op : ops} next s@(c : _) = case r ! op of
+    go cur@(State _ (op : ops)) next s@(c : _) = case r ! op of
       DOT -> go cur {ops} (add (op + 1) next) s
       CHAR c' ->
         if c == c'
