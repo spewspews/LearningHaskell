@@ -47,7 +47,7 @@ match :: Regex -> String -> Bool
 match r s = go (0 `cons` empty) empty $ s ++ ['\NUL']
   where
     go (UL _ []) next (_ : cs) = go (0 `cons` next) empty cs
-    go (UL is (op : ops)) next s@(c : _) = case r V.! op of
+    go (UL opset (op : ops)) next s@(c : _) = case r V.! op of
       DOT -> go tl (op + 1 `cons` next) s
       CHAR c' ->
         if c == c'
@@ -56,5 +56,5 @@ match r s = go (0 `cons` empty) empty $ s ++ ['\NUL']
       FORK j k -> go (op + j `cons` op + k `cons` tl) next s
       END -> True
       where
-        tl = UL is ops
+        tl = UL opset ops
     go _ _ "" = False
