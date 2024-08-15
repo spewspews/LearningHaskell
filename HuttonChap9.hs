@@ -30,17 +30,13 @@ values :: Expr -> [Int]
 values (Val i) = [i]
 values (App _ x y) = values x ++ values y
 
-m2b :: Maybe Bool -> Bool
-m2b (Just True) = True
-m2b _ = False
-
 eval :: Expr -> Maybe Int
 eval (Val i)
   | i > 0 = Just i
   | otherwise = Nothing
-eval (App o x y)
-  | m2b (valid o <$> evalx <*> evaly) = apply o <$> evalx <*> evaly
-  | otherwise = Nothing
+eval (App o x y) = case valid o <$> ex <*> ey of
+  Just True -> apply o <$> ex <*> ey
+  _ -> Nothing
   where
-    evalx = eval x
-    evaly = eval y
+    ex = eval x
+    ey = eval y
