@@ -28,9 +28,9 @@ int2let base n = chr $ ord base + n
 
 shift :: Int -> Char -> Char
 shift n c
-  | isLower c = int2let 'a' $ (let2int 'a' c + n) `mod` 26
-  | isUpper c = int2let 'A' $ (let2int 'A' c + n) `mod` 26
-  | otherwise = c
+    | isLower c = int2let 'a' $ (let2int 'a' c + n) `mod` 26
+    | isUpper c = int2let 'A' $ (let2int 'A' c + n) `mod` 26
+    | otherwise = c
 
 encode :: Int -> String -> String
 encode n xs = [shift n x | x <- xs]
@@ -79,12 +79,12 @@ replicate n x = [x | _ <- [1 .. n]]
 -- Ex 5.
 pyths :: Int -> [(Int, Int, Int)]
 pyths n =
-  [ (a, b, c)
-    | a <- lim,
-      b <- lim,
-      c <- lim,
-      a ^ 2 + b ^ 2 == c ^ 2
-  ]
+    [ (a, b, c)
+    | a <- lim
+    , b <- lim
+    , c <- lim
+    , a ^ 2 + b ^ 2 == c ^ 2
+    ]
   where
     lim = [1 .. n]
 
@@ -94,10 +94,10 @@ factors n = [f | f <- [1 .. n], n `mod` f == 0]
 
 perfects :: Int -> [Int]
 perfects n =
-  [ p
-    | p <- [1 .. n],
-      (sum $ init $ factors p) == p
-  ]
+    [ p
+    | p <- [1 .. n]
+    , (sum $ init $ factors p) == p
+    ]
 
 -- Ex 7.
 ex7 = [(x, y) | x <- [1, 2], y <- [3, 4]]

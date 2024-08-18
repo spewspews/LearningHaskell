@@ -9,8 +9,8 @@ product (n : ns) = n * Main.product ns
 insert :: (Ord a) => a -> [a] -> [a]
 insert x [] = [x]
 insert x (y : ys)
-  | x <= y = x : y : ys
-  | otherwise = y : insert x ys
+    | x <= y = x : y : ys
+    | otherwise = y : insert x ys
 
 isort :: (Ord a) => [a] -> [a]
 isort [] = []
@@ -50,9 +50,9 @@ exp a n = a * Main.exp a (n - 1)
 -- Ex 4.
 euclid :: Int -> Int -> Int
 euclid a b
-  | a == b = a
-  | a < b = euclid (b - a) a
-  | a > b = euclid (a - b) b
+    | a == b = a
+    | a < b = euclid (b - a) a
+    | a > b = euclid (a - b) b
 
 -- Ex. 5 Skipped.
 
@@ -81,16 +81,16 @@ replicate n a = a : Main.replicate (n - 1) a
 elem :: (Eq a) => a -> [a] -> Bool
 elem x' [] = False
 elem x' (x : xs)
-  | x' == x = True
-  | otherwise = Main.elem x' xs
+    | x' == x = True
+    | otherwise = Main.elem x' xs
 
 -- Ex 7.
 merge :: (Ord a) => [a] -> [a] -> [a]
 merge xs [] = xs
 merge [] ys = ys
 merge xs@(x : xtail) ys@(y : ytail)
-  | x <= y = x : merge xtail ys
-  | x > y = y : merge xs ytail
+    | x <= y = x : merge xtail ys
+    | x > y = y : merge xs ytail
 
 -- Ex 8.
 msort :: (Ord a) => [a] -> [a]

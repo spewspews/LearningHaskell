@@ -12,9 +12,9 @@ rqsort (x : xs) = rqsort larger ++ [x] ++ rqsort smaller
 
 seqn [] = return []
 seqn (act : acts) = do
-  x <- act
-  xs <- seqn acts
-  return (x : xs)
+    x <- act
+    xs <- seqn acts
+    return (x : xs)
 
 myproduct [] = 1
 myproduct (x : xs) = x * myproduct xs
