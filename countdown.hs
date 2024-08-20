@@ -1,4 +1,4 @@
-import Control.Monad (guard, join, mapM)
+import Control.Monad (guard, join)
 import Data.Maybe (mapMaybe)
 
 main :: IO ()
@@ -126,11 +126,10 @@ results xs = do
     combine' lx rx
 
 combine' :: Result -> Result -> [Result]
-combine' (l, x) (r, y) = mapMaybe f [Add, Sub, Mul, Div]
-  where
-    f o = do
-        v <- apply o x y
-        return (App o l r, v)
+combine' (l, x) (r, y) =
+    mapMaybe
+        (\o -> (App o l r,) <$> apply o x y)
+        [Add, Sub, Mul, Div]
 
 solutions' :: [Int] -> Int -> [Expr]
 solutions' l n = do
