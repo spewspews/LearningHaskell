@@ -74,6 +74,7 @@ eval :: Expr -> Maybe Int
 eval (Val i) = Just i
 eval (App o x y) = join $ apply o <$> eval x <*> eval y
 
+-- Exercise 9.
 valid :: Op -> Int -> Int -> Bool
 valid Div x y = y /= 0 && x `mod` y == 0
 valid _ _ _ = True
