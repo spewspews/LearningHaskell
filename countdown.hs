@@ -118,7 +118,7 @@ type Result = (Expr, Int)
 
 results :: [Int] -> [Result]
 results [] = []
-results [x] | x > 0 = [(Val x, x)] | otherwise = []
+results [x] = do guard (x > 0); return (Val x, x)
 results xs = do
     (ls, rs) <- split xs
     lx <- results ls
