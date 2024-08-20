@@ -80,16 +80,25 @@ combine (l, x) (r, y) =
         (\o -> (App o l r,) <$> apply o x y)
         [Add, Sub, Mul, Div, Exp]
 
+allResults :: [Int] -> [Result]
+allResults = choices >=> results
+
 solutions :: [Int] -> Int -> [Expr]
 solutions l n = do
-    (e, m) <- results =<< choices l
+    (e, m) <- allResults l
     guard (m == n)
+    return e
+
+tolerance :: Int -> [Int] -> Int -> [Expr]
+tolerance t l n = do
+    (e, m) <- allResults l
+    guard (abs (m - n) <= t)
     return e
 
 closest :: [Int] -> Int -> [Result]
 closest l n =
     sortBy (\(_, x) (_, y) -> compare (abs $ x - n) (abs $ y - n)) $
-        results =<< choices l
+        allResults l
 
 ordered :: [Int] -> Int -> [Expr]
 ordered l n = sortBy (\el er -> compare (length $ values el) (length $ values er)) $ solutions l n
