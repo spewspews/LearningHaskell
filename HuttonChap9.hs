@@ -89,5 +89,6 @@ apply op x y = if valid op x y then return (o x y) else Nothing
         Div -> div
 
 -- Exercise 4.
-possible = concatMap exprs $ choices [1, 3, 7, 10, 25, 50]
+possible :: [Expr]
+possible = exprs =<< choices [1, 3, 7, 10, 25, 50]
 successful = mapMaybe eval possible
