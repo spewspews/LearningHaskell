@@ -162,7 +162,7 @@ main = do
 -}
 main = do
     putStr "Nodes: "
-    print $ foldl' (\i _ -> i + 1) 0 gt
+    print $ length gt
     putStr "Depth: "
     print $ treeDepth gt
   where
