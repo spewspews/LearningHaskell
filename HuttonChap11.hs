@@ -123,7 +123,8 @@ prompt p = "Player " ++ show p ++ ", enter your move: "
 data Tree a = Node a [Tree a] deriving (Show, Foldable)
 
 gametree :: Grid -> Player -> Tree (Grid, Player)
-gametree g p = Node (g, p) [gametree g' (next p) | g' <- moves g p]
+-- gametree g p = Node (g, p) [gametree g' (next p) | g' <- moves g p]
+gametree g p = Node (g, p) $ map (\g -> gametree g (next p)) $ moves g p
 
 getChild :: Tree (Grid, Player) -> Grid -> Tree (Grid, Player)
 getChild (Node _ ts) g = head $ filter (\(Node (g', _) _) -> g' == g) ts
@@ -151,6 +152,32 @@ minimax (Node (g, p) ts)
   where
     ts' = map minimax ts
     ps = map (\(Node (_, p) _) -> p) ts'
+
+minimaxαβ :: Player -> Player -> Tree (Grid, Player) -> Tree (Grid, Player)
+minimaxαβ _ _ (Node (g, _) [])
+    | wins O g = Node (g, O) []
+    | wins X g = Node (g, X) []
+    | otherwise = Node (g, B) []
+minimaxαβ α β (Node (g, X) ts) = Node (g, s) ts'
+  where
+    (s, ts') = go α O [] ts
+    go α best ts' [] = (best, ts')
+    go α best ts' (t : ts) =
+        if α' > β then (best', t' : ts') else go α' best' (t' : ts') ts
+      where
+        t'@(Node (_, score) _) = minimaxαβ α β t
+        best' = max best score
+        α' = max α best'
+minimaxαβ α β (Node (g, O) ts) = Node (g, s) ts'
+  where
+    (s, ts') = go β X [] ts
+    go β best ts' [] = (best, ts')
+    go β best ts' (t : ts) =
+        if α > β' then (best', t' : ts') else go β' best' (t' : ts') ts
+      where
+        t'@(Node (_, score) _) = minimaxαβ α β t
+        best' = min best score
+        β' = min β best'
 
 bestmoves :: Tree (Grid, Player) -> [Tree (Grid, Player)]
 bestmoves (Node (g, best) ts) = filter (\(Node (_, p) _) -> p == best) ts
@@ -185,32 +212,37 @@ main = do
   where
     gt = gametree empty O
 -}
+{-
 main = do
     hSetBuffering stdout NoBuffering
     putStr "Go first? [yn]: "
     s <- getLine
-    if s == "y" then play (minimax $ gametree empty O) O else play (minimax $ gametree empty X) X
+    if s == "y" then play (gametree empty O) else play (gametree empty X)
+-}
+main = do
+    print $ length $ minimax $ gametree empty X
+    print $ length $ minimaxαβ O X $ gametree empty X
 
-play :: Tree (Grid, Player) -> Player -> IO ()
-play gt@(Node (g, _) _) p = do
+play :: Tree (Grid, Player) -> IO ()
+play gt@(Node (g, _) _) = do
     cls
     goto (1, 1)
     putGrid g
-    play' gt p
+    play' gt
 
-play' :: Tree (Grid, Player) -> Player -> IO ()
-play' gt@(Node (g, _) _) p
+play' :: Tree (Grid, Player) -> IO ()
+play' gt@(Node (g, p) ts)
     | wins O g = putStrLn "Player O Wins!\n"
     | wins X g = putStrLn "Player X Wins!\n"
     | full g = putStrLn "It's a draw!\n"
     | p == O = do
         i <- getNat (prompt p)
         case move g i p of
-            Just g' -> play (getChild gt g') (next p)
+            Just g -> play $ getChild gt g
             Nothing -> do
                 putStrLn "ERROR: Invalid move"
-                play' gt p
+                play' gt
     | p == X = do
         putStr "Player X is thinking... "
-        g' <- getRandom $ bestmoves gt
-        play g' (next p)
+        let Node (g, _) _ = head $ bestmoves $ minimaxαβ O X gt
+        play $ getChild gt g
