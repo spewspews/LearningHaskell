@@ -162,7 +162,7 @@ minimaxαβ α β (Node (g, X) ts) = go g α ts
   where
     go g α [] = (g, α)
     go g α (t@(Node (move, O) _) : ts) =
-        if β <= α' then (g', α') else go g' α' ts
+        if α' >= β then (g', α') else go g' α' ts
       where
         (_, score) = minimaxαβ α β t
         (g', α') = if α < score then (move, score) else (g, α)
