@@ -153,27 +153,27 @@ minimax (Node (g, p) ts)
     ts' = map minimax ts
     ps = map (\(Node (_, p) _) -> p) ts'
 
-minimaxαβ :: Player -> Player -> Tree (Grid, Player) -> (Grid, Player)
+minimaxαβ :: Player -> Player -> Tree (Grid, Player) -> (Maybe Grid, Player)
 minimaxαβ _ _ (Node (g, _) [])
-    | wins O g = (g, O)
-    | wins X g = (g, X)
-    | otherwise = (g, B)
-minimaxαβ α β (Node (g, X) ts) = go g α ts
+    | wins O g = (Just g, O)
+    | wins X g = (Just g, X)
+    | otherwise = (Just g, B)
+minimaxαβ α β (Node (g, X) ts) = go Nothing α ts
   where
     go g α [] = (g, α)
     go g α (t@(Node (move, O) _) : ts) =
         if α' >= β then (g', α') else go g' α' ts
       where
         (_, score) = minimaxαβ α β t
-        (g', α') = if α < score then (move, score) else (g, α)
-minimaxαβ α β (Node (g, O) ts) = go g β ts
+        (g', α') = if α < score then (Just move, score) else (g, α)
+minimaxαβ α β (Node (g, O) ts) = go Nothing β ts
   where
     go g β [] = (g, β)
     go g β (t@(Node (move, X) _) : ts) =
         if α >= β' then (g', β') else go g' β' ts
       where
         (_, score) = minimaxαβ α β t
-        (g', β') = if β > score then (move, score) else (g, β)
+        (g', β') = if β > score then (Just move, score) else (g, β)
 
 bestmoves :: Tree (Grid, Player) -> [Tree (Grid, Player)]
 bestmoves (Node (g, best) ts) = filter (\(Node (_, p) _) -> p == best) ts
@@ -266,5 +266,6 @@ play' gt@(Node (g, p) ts)
                 play' gt
     | p == X = do
         putStr "Player X is thinking... "
-        let (g, _) = minimaxαβ O X gt
-        play $ getChild gt g
+        case minimaxαβ O X gt of
+            (Just g, _) -> play $ getChild gt g
+            (Nothing, _) -> putStrLn "Player X Resigns! Player O Wins!"
