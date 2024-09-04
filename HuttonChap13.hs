@@ -3,10 +3,7 @@
 import Control.Applicative
 import Data.Char
 
-newtype Parser a = P (String -> Maybe (a, String))
-
-parse :: Parser a -> String -> Maybe (a, String)
-parse (P p) = p
+newtype Parser a = P {parse :: String -> Maybe (a, String)}
 
 item :: Parser Char
 item = P $ \case
@@ -48,7 +45,7 @@ instance Alternative Parser where
     empty = P $ const Nothing
     pl <|> pr = P $ \s -> case parse pl s of
         Nothing -> parse pr s
-        r -> r
+        l -> l
 
 sat :: (Char -> Bool) -> Parser Char
 sat p = do
