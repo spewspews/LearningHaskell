@@ -4,6 +4,7 @@
 \usepackage{fontspec}
 \usepackage{unicode-math}
 \usepackage{fancyvrb}
+\usepackage{syntax}
 \usepackage{tikz}
 
 \DefineVerbatimEnvironment{code}{Verbatim}{baselinestretch=.8, samepage=true}
@@ -308,10 +309,11 @@ comment = void $ string "--" *> many (sat (/= '\n')) *> char '\n'
 
 Using our second grammar for arithmetic expressions, draw the two possible parse trees for the expression \verb-2+3+4-.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.45\textwidth}
 \begin{tikzpicture}
   [ edge from parent/.style={draw,-latex}
-  , every text node part/.style={font=\itshape}
   , level distance=30pt
   ]
 \node{expr}
@@ -336,10 +338,11 @@ Using our second grammar for arithmetic expressions, draw the two possible parse
   }
 ;
 \end{tikzpicture}
-\hspace{15pt}
+\caption{First Parse Tree}
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
 \begin{tikzpicture}
   [ edge from parent/.style={draw,-latex}
-  , every text node part/.style={font=\itshape}
   , level distance=30pt
   ]
 \node{expr}
@@ -363,16 +366,20 @@ Using our second grammar for arithmetic expressions, draw the two possible parse
                     child{node{$4$}}}}}}}
 ;
 \end{tikzpicture}
-\end{center}
+\caption{Second Parse Tree}
+\end{minipage}
+\end{figure}
 
 \textsc{Exercise 3}
 
 Using our third grammar for arithmetic expessions, draw the parse trees for the expressions \verb-2+3-, \verb+2*3*4+ and \verb-(2+3)+4-
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.45\textwidth}
+\centering
 \begin{tikzpicture}
   [ edge from parent/.style={draw,-latex}
-  , every text node part/.style={font=\itshape}
   , level distance=30pt
   ]
 \node{expr}
@@ -388,10 +395,12 @@ Using our third grammar for arithmetic expessions, draw the parse trees for the 
           child{node{$3$}}}}}}
 ;
 \end{tikzpicture}
-
+\caption{Parse Tree for $2+3$}
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+\centering
 \begin{tikzpicture}
   [ edge from parent/.style={draw,-latex}
-  , every text node part/.style={font=\itshape}
   , level distance=30pt
   ]
 \node{expr}
@@ -411,10 +420,14 @@ Using our third grammar for arithmetic expessions, draw the parse trees for the 
             child{node{$4$}}}}}}}
 ;
 \end{tikzpicture}
+\caption{Parse Tree for $2*3*4$}
+\end{minipage}
+\end{figure}
 
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}
   [ edge from parent/.style={draw,-latex}
-  , every text node part/.style={font=\itshape}
   , level distance=30pt
   ]
 \node{expr}
@@ -441,7 +454,8 @@ Using our third grammar for arithmetic expessions, draw the parse trees for the 
           child{node{$4$}}}}}}
 ;
 \end{tikzpicture}
-\end{center}
+\caption{Parse Tree for $(2*3)+4$}
+\end{figure}
 
 \textsc{Exercise 4:}\quad Explain Why the final simplification of the grammar for arithmetic expressions has a dramatic effect on the efficiency of the resulting parser. Hint: begin by considering how an expression comprising a single number would be parsed if this simplification step had not been made.
 \vspace{8pt}
@@ -454,6 +468,7 @@ exprUnfactored = (+) <$> term <* symbol "+" <*> expr <|> term
 \end{code}
 
 To parse only a natural number, first \verb-term <* symbol "+" <*> expr- will be parsed, so \verb-term- will be parsed completely and then the parser will fail at \verb-symbol "+"-. Then the term will be parsed again and succeed. So the parser will parse the term twice.
+\vspace{8pt}
 
 \textsc{Exercise 5:} Define a suitable type \verb-Expr- for arithmetic expressions and modify the parser for expressions to have type \verb-expr :: Parser Expr-.
 
@@ -473,6 +488,46 @@ term' = F <$> factor' <*> (Just <$> (symbol "*" *> term') <|> nothing)
 
 factor' :: Parser Factor
 factor' = E <$> (symbol "(" *> expr' <* symbol ")") <|> N <$> natural
+\end{code}
+
+\textsc{Exercise 6}\quad Extend the parser expr :: Parser Int to support subtraction and division,and to use integer values rather than natural numbers, based upon the following revisions to the grammar:
+
+\begin{grammar}
+<expr> ::= <term> (`+' <expr> | `-' <expr> | <empty>)
+
+<term> ::= <factor> ( `*' <term> | `/' <term> | <empty>)
+
+<factor> :: = `(' <expr> `)' | <int>
+\end{grammar}
+
+As follows, switching to monadic parsing since the character we parse determines the function to apply.
+
+\begin{code}
+exprI :: Parser Int
+exprI = do
+    t <- termI
+    do
+        op <- symbol "+" <|> symbol "-"
+        e <- exprI
+        case op of
+            "+" -> return $ t + e
+            "-" -> return $ t - e
+        <|> return t
+
+termI :: Parser Int
+termI = do
+    f <- factorI
+    do
+        op <- symbol "*" <|> symbol "/"
+        t <- termI
+        case op of
+            "*" -> return $ f * t
+            "/" -> return $ f `div` t
+        <|> return f
+
+
+factorI :: Parser Int
+factorI = symbol "(" *> exprI <* symbol ")" <|> integer
 \end{code}
 
 \end{document}
