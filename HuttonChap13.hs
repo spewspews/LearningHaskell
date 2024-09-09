@@ -3,6 +3,7 @@
 import Control.Applicative
 import Control.Monad (void)
 import Data.Char
+import System.IO (hSetEcho, stdin)
 
 newtype Parser a = P {parse :: String -> Maybe (a, String)}
 
@@ -143,8 +144,111 @@ term = do
 factor :: Parser Int
 factor = symbol "(" *> expr <* symbol ")" <|> natural
 
+{-
 eval :: String -> Int
 eval s = case parse expr s of
     Just (n, "") -> n
     Just (_, out) -> error $ "Unused input " ++ out
     Nothing -> error "Invalid input"
+-}
+
+box :: [String]
+box =
+    [ "+---------------+"
+    , "|               |"
+    , "+---+---+---+---+"
+    , "| q | c | d | = |"
+    , "+---+---+---+---+"
+    , "| 1 | 2 | 3 | + |"
+    , "+---+---+---+---+"
+    , "| 4 | 5 | 6 | - |"
+    , "+---+---+---+---+"
+    , "| 7 | 8 | 9 | * |"
+    , "+---+---+---+---+"
+    , "| 0 | ( | ) | / |"
+    , "+---+---+---+---+"
+    ]
+
+buttons :: String
+buttons = standard ++ extra
+  where
+    standard = "qcd=123+456-789*0()/"
+    extra = "QCD \ESC\BS\DEL\n"
+
+cls :: IO ()
+cls = putStr "\ESC[2J"
+
+type Pos = (Int, Int)
+
+writeat :: Pos -> String -> IO ()
+writeat p xs = do
+    goto p
+    putStr xs
+
+goto :: Pos -> IO ()
+goto (x, y) = putStr $ "\ESC[" ++ show y ++ ";" ++ show x ++ "H"
+
+getCh :: IO Char
+getCh = do
+    hSetEcho stdin False
+    x <- getChar
+    hSetEcho stdin True
+    return x
+
+showbox :: IO ()
+showbox = sequence_ [writeat (1, y) b | (y, b) <- zip [1 ..] box]
+
+display s = do
+    writeat (3, 2) $ replicate 13 ' '
+    writeat (3, 2) $ reverse $ take 13 $ reverse s
+
+calc :: String -> IO ()
+calc s = do
+    display s
+    c <- getCh
+    if c `elem` buttons
+        then process c s
+        else do
+            beep
+            calc s
+
+beep :: IO ()
+beep = putStr "\BEL"
+
+process :: Char -> String -> IO ()
+process c s
+    | c `elem` "qQ\ESC" = quit
+    | c `elem` "d D\BS\DEL" = delete s
+    | c `elem` "=\n" = eval s
+    | c `elem` "cC" = clear
+    | otherwise = press c s
+
+quit :: IO ()
+quit = goto (1, 14)
+
+delete :: String -> IO ()
+delete [] = calc []
+delete s = calc $ init s
+
+eval :: String -> IO ()
+eval s = case parse expr s of
+    Just (n, []) -> calc $ show n
+    _ -> do
+        beep
+        calc s
+
+clear :: IO ()
+clear = calc []
+
+press :: Char -> String -> IO ()
+press c s = calc $ s ++ [c]
+
+run :: IO ()
+run = do
+    cls
+    showbox
+    clear
+
+-- Exercise 1
+comment :: Parser ()
+comment = void $ string "--" *> many (sat (/= '\n')) *> char '\n'
