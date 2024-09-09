@@ -595,7 +595,7 @@ exprSub' = (-) <$> (exprSub' <|> natural) <*> (symbol "-" *> natural <|> zero)
 
 \item What is the problem with this parser?
 
-With \texttt{exprSub}, it will not parse more than one subtraction, never choosing \texttt{exprSub} in the expression \texttt{natural <|> exprSub}. For \texttt{exprSub'}, it never terminates, always trying to parse another \texttt{exprSub'} without terminating on \texttt{natural}.
+With \texttt{exprSub}, it will not parse more than one subtraction, never choosing \texttt{exprSub} in the parser \texttt{natural <|> exprSub}. For \texttt{exprSub'}, it never terminates, always trying to parse another \texttt{exprSub'} without terminating on \texttt{natural}.
 
 \item Show how it can be fixed. Hint: rewrite the parser using the repetition primitive \texttt{many} and the library function \texttt{foldl}.
 
