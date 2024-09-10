@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage[paperwidth=5.5in,paperheight=8.5in,margin=0.5in,top=.6in,bottom=.6in]{geometry}
+\usepackage[paperwidth=5.5in,paperheight=8.5in,margin=0.5in,footskip=.25in]{geometry}
 \usepackage{fontspec}
 \usepackage{unicode-math}
 \usepackage{fancyvrb}
@@ -17,10 +17,9 @@
 
 \begin{document}
 
+\begin{center}
 \section*{\textsc{Chapter 13}}
-\vspace{10pt}
-
-This is just the preamble, a few imports:
+\end{center}
 
 \begin{code}
 {-# LANGUAGE LambdaCase #-}
@@ -100,7 +99,7 @@ instance Alternative Parser where
         l -> l
 \end{code}
 
-We define some basic (atomic) parsers:
+We define some basic parsers based on a predicate:
 
 \begin{code}
 sat :: (Char -> Bool) -> Parser Char
@@ -125,18 +124,18 @@ alphanum = sat isAlphaNum
 
 char :: Char -> Parser Char
 char c = sat (== c)
+\end{code}
 
+And some more advanced parsers based on the previous character parsers:
+
+\begin{code}
 string :: String -> Parser String
 string "" = return ""
 string s@(x : xs) = do
     char x
     string xs
     return s
-\end{code}
 
-And some more advanced parsers:
-
-\begin{code}
 ident :: Parser String
 ident = (:) <$> lower <*> many alphanum
 
