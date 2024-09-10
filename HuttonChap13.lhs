@@ -165,15 +165,10 @@ symbol :: String -> Parser String
 symbol s = token $ string s
 
 nats :: Parser [Int]
-{-
-nats = do
+nats =
     symbol "["
-    n <- natural
-    ns <- many $ (\_ n -> n) <$> symbol "," <*> natural
-    symbol "]"
-    return $ n : ns
--}
-nats = symbol "[" *> ((:) <$> natural <*> many (symbol "," *> natural)) <* symbol "]"
+        *> ((:) <$> natural <*> many (symbol "," *> natural))
+        <* symbol "]"
 
 zero :: Parser Int
 zero = P $ \s -> Just (0, s)
