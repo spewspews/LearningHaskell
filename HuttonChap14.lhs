@@ -21,7 +21,7 @@
 \section*{Chapter 14}
 \end{center}
 
-\textsc{Exercise 1}: Complete the following instance declaration from Data.Monoid to make a pair type into a monoid provided the two component types are monoids:
+\textsc{Exercise 1}: Complete the following instance declaration from \texttt{Data.Monoid} to make a pair type into a monoid provided the two component types are monoids:
 
 \begin{code}
 data Pair a b = Pair a b
