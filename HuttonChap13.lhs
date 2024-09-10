@@ -347,6 +347,7 @@ Using our second grammar for arithmetic expressions, draw the two possible parse
 \end{tikzpicture}
 \caption{First Parse Tree}
 \end{minipage}
+\hfill
 \begin{minipage}{0.45\textwidth}
 \begin{tikzpicture}
   [ edge from parent/.style={draw,-latex}
@@ -461,7 +462,7 @@ Using our third grammar for arithmetic expessions, draw the parse trees for the 
           child{node{$4$}}}}}}
 ;
 \end{tikzpicture}
-\caption{Parse Tree for $(2*3)+4$}
+\caption{Parse Tree for $(2+3)*4$}
 \end{figure}
 
 \textsc{Exercise 4:}\quad Explain Why the final simplification of the grammar for arithmetic expressions has a dramatic effect on the efficiency of the resulting parser. Hint: begin by considering how an expression comprising a single number would be parsed if this simplification step had not been made.
