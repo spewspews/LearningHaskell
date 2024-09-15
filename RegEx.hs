@@ -6,7 +6,7 @@ data Op
     | CHAR Char
     | FORK Int Int
     | END
-    deriving (Show)
+    deriving Show
 
 type Regex = Vector Op
 
@@ -28,11 +28,12 @@ parse s = fromList . reverse . (END :) . fst <$> go [[]] s
         '\\' -> case cs of
             c : cs -> go ([CHAR c] : prevOps : opss) cs
             _ -> Left "Bad regular expression: escape sequence"
+--        '|' -> go ([FORK 1 (WHAT LENGTH GOES HERE)] : prevOps : opss ++ [[FORK 1 (l + length (concat opss) + 2)]]) cs
         c -> go ([CHAR c] : prevOps : opss) cs
       where
         l = length prevOps
 
-data State = State {s :: IntSet, ops :: [Int]} deriving (Show)
+data State = State {s :: IntSet, ops :: [Int]} deriving Show
 
 empty :: State
 empty = State mempty []

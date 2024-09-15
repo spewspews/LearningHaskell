@@ -25,6 +25,10 @@
 \end{center}
 
 \begin{code}
+primes :: [Int]
+primes = sieve [2 ..]
+  where
+    sieve (p : xs) = p : sieve (filter (\x -> x `mod` p /= 0) xs)
 \end{code}
 
 \noindent
