@@ -12,7 +12,7 @@
 \DefineVerbatimEnvironment{code}{Verbatim}{baselinestretch=.8, samepage=true}
 
 \setmainfont{Garamond Premier Pro}[Contextuals=AlternateOff]
-\setmathfont{Garamond Math}[Scale=MatchUppercase]
+\setmathfont{Libertinus Math}[Scale=MatchUppercase]
 \setmonofont{Monaspace Argon}[Scale=0.7]
 
 \setlength{\parindent}{1em}
