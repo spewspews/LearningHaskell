@@ -1,0 +1,4 @@
+name: LearningHaskell
+depend: agda2hs
+include: .
+flags: --erasure

@@ -36,7 +36,8 @@ add (Succ n) m = Succ $ add n m
 
 \begin{code}
 reverse' :: [a] -> [a] -> [a]
-reverse' xs ys = foldl (flip (:)) ys xs
+reverse' [] ys = ys
+reverse' (x : xs) ys = reverse' xs (x : ys)
 \end{code}
 
 \begin{code}
