@@ -26,7 +26,38 @@ module HuttonChap16 where
 
 open import Haskell.Prelude
 open import Haskell.Law.Equality using (sym; begin_; _≡⟨⟩_; step-≡; _∎; cong)
+open import Haskell.Law.Eq.Def using (IsLawfulEq; eqReflexivity)
+\end{code}
 
+\noindent
+\textsc{Induction on Numbers}
+
+\noindent
+Proving the first fact about replicate:
+
+\begin{code}
+replicate : {a : Set} → Nat → a → List a
+replicate zero _ = []
+replicate (suc n) x = x ∷ replicate n x
+
+len-repl : {A : Set} → (n : Nat) → (x : A) → lengthNat (replicate n x) ≡ n
+len-repl zero x = refl
+len-repl (suc n) x =
+  begin
+    lengthNat (replicate (suc n) x)
+  ≡⟨⟩ -- Apply replicate
+    lengthNat (x ∷ replicate n x)
+  ≡⟨⟩ -- Apply lengthNat
+    suc (lengthNat (replicate n x))
+  ≡⟨ cong suc (len-repl n x) ⟩
+    suc n
+  ∎
+\end{code}
+
+\noindent
+Some facts about append:
+
+\begin{code}
 ++-[] : {a : Set} → (xs : List a) → xs ++ [] ≡ xs
 ++-[] [] = begin ([] ++ []) ≡⟨⟩ [] ∎
 ++-[] (x ∷ xs) =
@@ -37,7 +68,9 @@ open import Haskell.Law.Equality using (sym; begin_; _≡⟨⟩_; step-≡; _∎
     ≡⟨ cong (x ∷_) (++-[] xs) ⟩
       x ∷ xs
     ∎
+\end{code}
 
+\begin{code}
 ++-assoc : {a : Set} → (xs ys zs : List a)
     → (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
 ++-assoc [] ys zs =
@@ -254,5 +287,30 @@ compile-exec-eval e =
     m + suc n
   ∎
 \end{code}
+
+\noindent
+\textsc{Exercise 3}
+Complete the proof of the correctness of replicate by showing that it produces a list with identical elements, \verb!all (== x) (replicate n x)!, by induction on $n ≥ 0$. Hint: show that the property is always \verb!True!.
+
+\begin{code}
+all-repl : ⦃ iEq : Eq a ⦄ → ⦃ IsLawfulEq a ⦄ → (n : Nat) → (x : a)
+    → all (_== x) (replicate n x) ≡ True
+all-repl zero x = refl
+all-repl (suc n) x =
+  begin
+    all (_== x) (replicate (suc n) x)
+  ≡⟨⟩ -- Apply replicate
+    all (_== x) (x ∷ replicate n x)
+  ≡⟨⟩ -- Apply all
+    (x == x) && (all (_== x) (replicate n x))
+  ≡⟨ cong ((x == x) &&_) (all-repl n x) ⟩ -- Induction
+    (x == x) && True
+  ≡⟨ cong (_&& True) (eqReflexivity x) ⟩ -- Reflexivity x == x
+    True
+  ∎
+\end{code}
+
+\noindent
+\textsc{Exercise 4}: This is \verb!++-[]! and \verb!++-assoc! above.
 
 \end{document}
