@@ -449,7 +449,7 @@ instance
 \begin{code}
 module FunctorTree where
   open import Haskell.Prim.Functor using (DefaultFunctor) 
-  open DefaultFunctor
+  open DefaultFunctor using (fmap)
 
   dft : DefaultFunctor Tree
   fmap dft f (Leaf x) = Leaf (f x)
