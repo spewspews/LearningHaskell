@@ -531,7 +531,7 @@ module LawfulApplicative where
     composition ⦃ isLawful ⦄ Nothing y z =
       begin
         pure _∘_ <*> Nothing <*> y <*> z
-      ≡⟨⟩ -- Apply pure and the first <*>
+      ≡⟨⟩ -- Apply pure and <*>
         Nothing <*> y <*> z
       ≡⟨⟩ -- Apply the rest of the <*>
         Nothing
@@ -541,11 +541,11 @@ module LawfulApplicative where
     composition ⦃ isLawful ⦄ (Just x) Nothing z =
       begin
         pure _∘_ <*> Just x <*> Nothing <*> z
-      ≡⟨⟩ -- Apply pure and the first <*>
+      ≡⟨⟩ -- Apply pure and <*>
         Just (x ∘_) <*> Nothing <*> z
-      ≡⟨⟩ -- Apply the next <*>
+      ≡⟨⟩ -- Apply <*>
         Nothing <*> z
-      ≡⟨⟩ -- Apply the rest of the <*>
+      ≡⟨⟩ -- Apply <*>
         Nothing
       ≡⟨⟩ -- Unapply <*>
         Nothing <*> z
@@ -589,24 +589,20 @@ module LawfulApplicative where
       ≡⟨⟩ -- Apply <*>
         Nothing
       ≡⟨⟩ -- Unapply <*>
-        pure (λ f → f y) <*> Nothing
+        pure (_$ y) <*> Nothing
       ∎
     interchange ⦃ isLawful ⦄ (Just x) y =
       begin
         (Just x) <*> pure y
       ≡⟨⟩ -- Apply <*>
         Just (x y)
-      ≡⟨⟩ -- Unapply λ
-        Just ((λ f → f y) x)
+      ≡⟨⟩ -- Unapply $
+        Just ((_$ y) x)
       ≡⟨⟩ -- Unapply <*>
-        pure (λ f → f y) <*> Just x
+        pure (_$ y) <*> Just x
       ∎
     functor ⦃ isLawful ⦄ f Nothing = refl -- These are by definition.
     functor ⦃ isLawful ⦄ f (Just x) = refl
 \end{code}
 
 \end{document}
-  
- 
- 
- 
