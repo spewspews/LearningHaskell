@@ -760,11 +760,11 @@ module MonadLawsList where
     ≡⟨ cong (ys ++_) (rSequence2rBind xs ys) ⟩
       ys ++ (xs >> ys)
     ≡⟨⟩ -- Apply >>
-      ys ++ (xs >>= λ x → ys)
+      ys ++ (xs >>= λ _ → ys)
     ≡⟨⟩ -- Unapply λ
-      (λ x → ys) x ++ (xs >>= λ x → ys)
+      (λ _ → ys) x ++ (xs >>= λ _ → ys)
     ≡⟨⟩ -- Unapply >>=
-      (x ∷ xs) >>= (λ x → ys)
+      (x ∷ xs) >>= (λ _ → ys)
     ≡⟨⟩ -- Unapply >>
       (x ∷ xs) >> ys
     ∎
