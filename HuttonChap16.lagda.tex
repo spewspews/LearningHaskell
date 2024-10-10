@@ -392,31 +392,30 @@ leaves-nodes (Node tₗ tᵣ) =
 \textsc{Exercise 7.} Verify the functor laws for the \texttt{Maybe} type. Hint: the proofs proceed by case analysis, and do not require the use of induction.
 
 \begin{code}
-module LawfulFunctorMaybe where
-  open import Haskell.Law.Functor.Def
-    using (IsLawfulFunctor; identity; composition)
-
-  instance
-    isLawful : IsLawfulFunctor Maybe
-    identity ⦃ isLawful ⦄ Nothing =
-      begin
-        fmap id Nothing
-      ≡⟨⟩ -- Apply fmap
-        Nothing
-      ≡⟨⟩ -- Unapply id
-        id Nothing
-      ∎
-    identity ⦃ isLawful ⦄ (Just x) =
-      begin
-        fmap id (Just x)
-      ≡⟨⟩ -- Apply fmap
-        Just (id x)
-      ≡⟨⟩ -- Apply id
-        Just x
-      ≡⟨⟩ -- Unapply id
-        id (Just x)
-      ∎
-    composition ⦃ isLawful ⦄ Nothing f g =
+module FunctorLawsMaybe where
+  identity : {a : Set} → (m : Maybe a) → (fmap id) m ≡ id m
+  identity Nothing =
+    begin
+      fmap id Nothing
+    ≡⟨⟩ -- Apply fmap
+      Nothing
+    ≡⟨⟩ -- Unapply id
+      id Nothing
+    ∎
+  identity (Just x) =
+    begin
+      fmap id (Just x)
+    ≡⟨⟩ -- Apply fmap
+      Just (id x)
+    ≡⟨⟩ -- Apply id
+      Just x
+    ≡⟨⟩ -- Unapply id
+      id (Just x)
+    ∎
+  composition : {a b c : Set}
+    → (m : Maybe a) → (f : a → b) → (g : b → c)
+    → fmap (g ∘ f) m ≡ (fmap g ∘ fmap f) m
+  composition Nothing f g =
       begin
         fmap (g ∘ f) Nothing
       ≡⟨⟩ -- Apply fmap
@@ -428,197 +427,250 @@ module LawfulFunctorMaybe where
       ≡⟨⟩ -- Unapply ∘
         (fmap g ∘ fmap f) Nothing
       ∎
-    composition ⦃ isLawful ⦄ (Just x) f g =
-      begin
-        fmap (g ∘ f) (Just x)
-      ≡⟨⟩ -- Apply fmap
-        Just ((g ∘ f) x)
-      ≡⟨⟩ -- Apply ∘
-        Just (g (f x))
-      ≡⟨⟩ -- Unapply fmap
-        fmap g (Just (f x))
-      ≡⟨⟩ -- Unapply fmap
-        fmap g (fmap f (Just x))
-      ≡⟨⟩ -- Unapply ∘
-        (fmap g ∘ fmap f) (Just x)
-      ∎
+  composition (Just x) f g =
+    begin
+      fmap (g ∘ f) (Just x)
+    ≡⟨⟩ -- Apply fmap
+      Just ((g ∘ f) x)
+    ≡⟨⟩ -- Apply ∘
+      Just (g (f x))
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (Just (f x))
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (fmap f (Just x))
+    ≡⟨⟩ -- Unapply ∘
+      (fmap g ∘ fmap f) (Just x)
+    ∎
+module LawfulFunctorMaybe where
+  open import Haskell.Law.Functor.Def
+    using (IsLawfulFunctor; identity; composition)
+  instance
+    isLawful : IsLawfulFunctor Maybe
+    identity ⦃ isLawful ⦄ = FunctorLawsMaybe.identity
+    composition ⦃ isLawful ⦄ = FunctorLawsMaybe.composition
 \end{code}
 
 \noindent
 \textsc{Exercise 8.} Given the instance declaration below, verify the functor laws for the \texttt{Tree} type, by induction on trees.
 
 \begin{code}
-open import Haskell.Prim.Functor using (DefaultFunctor) 
-
-treeMap : (a → b) → (Tree a) → (Tree b)
+open import Haskell.Prim.Functor using (DefaultFunctor)
+treeMap : {a b : Set} → (a → b) → (Tree a) → (Tree b)
 treeMap f (Leaf x) = Leaf (f x)
 treeMap f (Node tₗ tᵣ) = Node (treeMap f tₗ) (treeMap f tᵣ)
 {-# COMPILE AGDA2HS treeMap #-}
-
 dft : DefaultFunctor Tree
 dft = record { fmap = treeMap }
 instance
   iFunctorTree : Functor Tree
   iFunctorTree = record { DefaultFunctor dft }
   {-# COMPILE AGDA2HS iFunctorTree #-}
-
-idTree : (t : Tree a) → (fmap id) t ≡ id t
-idTree (Leaf x) = refl
-idTree (Node tₗ tᵣ) =
-  begin
-    fmap id (Node tₗ tᵣ)
-  ≡⟨⟩ -- Apply fmap
-    Node (fmap id tₗ) (fmap id tᵣ)
-  ≡⟨ cong (λ x → Node x (fmap id tᵣ)) (idTree tₗ) ⟩
-    Node (id tₗ) (fmap id tᵣ)
-  ≡⟨ cong (Node (id tₗ)) (idTree tᵣ) ⟩
-    Node (id tₗ) (id tᵣ)
-  ≡⟨⟩ -- Apply and unapply id
-    id (Node tₗ tᵣ)
-  ∎
-  
-compTree : (t : Tree a) → (f : a → b) → (g : b → c)
-  → fmap (g ∘ f) t ≡ (fmap g ∘ fmap f) t
-compTree (Leaf x) f g = refl
-compTree (Node tₗ tᵣ) f g =
-  begin
-    fmap (g ∘ f) (Node tₗ tᵣ)
-  ≡⟨⟩ -- Apply fmap
-    Node (fmap (g ∘ f) tₗ) (fmap (g ∘ f) tᵣ)
-  ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (compTree tₗ f g) ⟩
-    Node ((fmap g ∘ fmap f) tₗ) (fmap (g ∘ f) tᵣ)
-  ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (compTree tᵣ f g) ⟩
-    Node ((fmap g ∘ fmap f) tₗ) ((fmap g ∘ fmap f) tᵣ)
-  ≡⟨⟩ -- Unapply fmap
-    fmap g (Node (fmap f tₗ) (fmap f tᵣ))
-  ≡⟨⟩ -- Unapply fmap
-    fmap g (fmap f (Node tₗ tᵣ))
-  ≡⟨⟩ -- Unapply ∘
-    (fmap g ∘ fmap f) (Node tₗ tᵣ)
-  ∎
-
+module FunctorLawsTree where
+  identity : (t : Tree a) → (fmap id) t ≡ id t
+  identity (Leaf x) = refl
+  identity (Node tₗ tᵣ) =
+    begin
+      fmap id (Node tₗ tᵣ)
+    ≡⟨⟩ -- Apply fmap
+      Node (fmap id tₗ) (fmap id tᵣ)
+    ≡⟨ cong (λ x → Node x (fmap id tᵣ)) (identity tₗ) ⟩
+      Node (id tₗ) (fmap id tᵣ)
+    ≡⟨ cong (Node (id tₗ)) (identity tᵣ) ⟩
+      Node (id tₗ) (id tᵣ)
+    ≡⟨⟩ -- Apply and unapply id
+      id (Node tₗ tᵣ)
+    ∎
+  composition : (t : Tree a) → (f : a → b) → (g : b → c)
+    → fmap (g ∘ f) t ≡ (fmap g ∘ fmap f) t
+  composition (Leaf x) f g = refl
+  composition (Node tₗ tᵣ) f g =
+    begin
+      fmap (g ∘ f) (Node tₗ tᵣ)
+    ≡⟨⟩ -- Apply fmap
+      Node (fmap (g ∘ f) tₗ) (fmap (g ∘ f) tᵣ)
+    ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (composition tₗ f g) ⟩
+      Node ((fmap g ∘ fmap f) tₗ) (fmap (g ∘ f) tᵣ)
+    ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (composition tᵣ f g) ⟩
+      Node ((fmap g ∘ fmap f) tₗ) ((fmap g ∘ fmap f) tᵣ)
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (Node (fmap f tₗ) (fmap f tᵣ))
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (fmap f (Node tₗ tᵣ))
+    ≡⟨⟩ -- Unapply ∘
+      (fmap g ∘ fmap f) (Node tₗ tᵣ)
+    ∎
 module LawfulFunctorTree where
   open import Haskell.Law.Functor.Def
     using (IsLawfulFunctor; identity; composition)
   instance
     isLawful : IsLawfulFunctor Tree
-    identity ⦃ isLawful ⦄ = idTree
-    composition ⦃ isLawful ⦄ = compTree
+    identity ⦃ isLawful ⦄ = FunctorLawsTree.identity
+    composition ⦃ isLawful ⦄ = FunctorLawsTree.composition
 \end{code}
 
 \noindent
 \textsc{Exercise 9.} Verify the applicative laws for the \texttt{Maybe} type.
 
 \begin{code}
-idMaybe : {a : Set} → (m : Maybe a) → (pure id <*> m) ≡ m
-idMaybe Nothing =
-  begin
-    pure id <*> Nothing
-  ≡⟨⟩ -- Apply pure and <*>
-    Nothing
-  ∎
-idMaybe (Just x) =
-  begin
-    pure id <*> Just x
-  ≡⟨⟩ -- Apply pure
-    Just id <*> Just x
-  ≡⟨⟩ -- Apply <*>
-    Just (id x)
-  ≡⟨⟩ -- Apply id
-    Just x
-  ∎
+module ApplicativeLawsMaybe where
+  identity : {a : Set} → (m : Maybe a) → (pure id <*> m) ≡ m
+  identity Nothing =
+    begin
+      pure id <*> Nothing
+    ≡⟨⟩ -- Apply pure and <*>
+      Nothing
+    ∎
+  identity (Just x) =
+    begin
+      pure id <*> Just x
+    ≡⟨⟩ -- Apply pure
+      Just id <*> Just x
+    ≡⟨⟩ -- Apply <*>
+      Just (id x)
+    ≡⟨⟩ -- Apply id
+      Just x
+    ∎
 
-compMaybe : {a b c : Set}
-  → (x : Maybe (b → c)) → (y : Maybe (a → b)) → (z : Maybe a)
-  → (pure _∘_ <*> x <*> y <*> z) ≡ (x <*> (y <*> z))
-compMaybe Nothing y z =
-  begin
-    pure _∘_ <*> Nothing <*> y <*> z
-  ≡⟨⟩ -- Apply pure and <*>
-    Nothing <*> y <*> z
-  ≡⟨⟩ -- Apply the rest of the <*>
-    Nothing
-  ≡⟨⟩ -- Unapply <*> on the right
-    Nothing <*> (y <*> z)
-  ∎
-compMaybe (Just x) Nothing z =
-  begin
-    pure _∘_ <*> Just x <*> Nothing <*> z
-  ≡⟨⟩ -- Apply pure and <*>
-    Just (x ∘_) <*> Nothing <*> z
-  ≡⟨⟩ -- Apply <*>
-    Nothing <*> z
-  ≡⟨⟩ -- Apply <*>
-    Nothing
-  ≡⟨⟩ -- Unapply <*>
-    Nothing <*> z
-  ≡⟨⟩ -- Unapply <*>
-    Just x <*> (Nothing <*> z)
-  ∎
-compMaybe (Just x) (Just y) Nothing =
-  refl -- Same kind of proof as above.
+  composition : {a b c : Set}
+    → (x : Maybe (b → c)) → (y : Maybe (a → b)) → (z : Maybe a)
+    → (pure _∘_ <*> x <*> y <*> z) ≡ (x <*> (y <*> z))
+  composition Nothing y z =
+    begin
+      pure _∘_ <*> Nothing <*> y <*> z
+    ≡⟨⟩ -- Apply pure and <*>
+      Nothing <*> y <*> z
+    ≡⟨⟩ -- Apply the rest of the <*>
+      Nothing
+    ≡⟨⟩ -- Unapply <*> on the right
+      Nothing <*> (y <*> z)
+    ∎
+  composition (Just x) Nothing z =
+    begin
+      pure _∘_ <*> Just x <*> Nothing <*> z
+    ≡⟨⟩ -- Apply pure and <*>
+      Just (x ∘_) <*> Nothing <*> z
+    ≡⟨⟩ -- Apply <*>
+      Nothing <*> z
+    ≡⟨⟩ -- Apply <*>
+      Nothing
+    ≡⟨⟩ -- Unapply <*>
+      Nothing <*> z
+    ≡⟨⟩ -- Unapply <*>
+      Just x <*> (Nothing <*> z)
+    ∎
+  composition (Just x) (Just y) Nothing =
+    refl -- Same kind of proof as above.
 \end{code}
 
 \begin{code}
-compMaybe (Just x) (Just y) (Just z) =
-  begin
-    pure _∘_ <*> Just x <*> Just y <*> Just z
-  ≡⟨⟩ -- Apply pure and <*>
-    Just (x ∘_) <*> Just y <*> Just z
-  ≡⟨⟩ -- Apply <*>
-    Just (x ∘ y) <*> Just z
-  ≡⟨⟩ -- Apply <*>
-    Just ((x ∘ y) z)
-  ≡⟨⟩ -- Apply ∘
-    Just (x (y z))
-  ≡⟨⟩ -- Unapply <*>
-    Just x <*> Just (y z)
-  ≡⟨⟩ -- Unapply <*>
-    Just x <*> (Just y <*> Just z)
-  ∎
+  composition (Just x) (Just y) (Just z) =
+    begin
+      pure _∘_ <*> Just x <*> Just y <*> Just z
+    ≡⟨⟩ -- Apply pure and <*>
+      Just (x ∘_) <*> Just y <*> Just z
+    ≡⟨⟩ -- Apply <*>
+      Just (x ∘ y) <*> Just z
+    ≡⟨⟩ -- Apply <*>
+      Just ((x ∘ y) z)
+    ≡⟨⟩ -- Apply ∘
+      Just (x (y z))
+    ≡⟨⟩ -- Unapply <*>
+      Just x <*> Just (y z)
+    ≡⟨⟩ -- Unapply <*>
+      Just x <*> (Just y <*> Just z)
+    ∎
 
-module LawfulApplicative where
+  homomorphism : {a b : Set} → (f : a → b) (x : a)
+    → ((pure f) <*> (pure x)) ≡ (pure (f x))
+  homomorphism f x =
+    begin
+      pure f <*> pure x
+    ≡⟨⟩ -- Apply pure
+      Just f <*> Just x
+    ≡⟨⟩ -- Apply <*>
+      Just (f x)
+    ≡⟨⟩ -- Unapply pure
+      pure (f x)
+    ∎
+
+  interchange : {a b : Set} → (x : Maybe (a → b)) (y : a)
+    → (x <*> (pure y)) ≡ (pure (λ f → f y) <*> x)
+  interchange Nothing y =
+    begin
+      Nothing <*> pure y
+    ≡⟨⟩ -- Apply <*>
+      Nothing
+    ≡⟨⟩ -- Unapply <*>
+      pure (_$ y) <*> Nothing
+    ∎
+  interchange (Just x) y =
+    begin
+      (Just x) <*> pure y
+    ≡⟨⟩ -- Apply <*>
+      Just (x y)
+    ≡⟨⟩ -- Unapply $
+      Just ((_$ y) x)
+    ≡⟨⟩ -- Unapply <*>
+      pure (_$ y) <*> Just x
+    ∎
+\end{code}
+
+\begin{code}
+module LawfulApplicativeMaybe where
   open import Haskell.Law.Applicative.Def
     using (IsLawfulApplicative; identity; composition;
       homomorphism; interchange; functor)
   instance
     isLawful : IsLawfulApplicative Maybe
-    identity ⦃ isLawful ⦄ = idMaybe
-    composition ⦃ isLawful ⦄ = compMaybe
-    homomorphism ⦃ isLawful ⦄ f x =
-      begin
-        pure f <*> pure x
-      ≡⟨⟩ -- Apply pure
-        Just f <*> Just x
-      ≡⟨⟩ -- Apply <*>
-        Just (f x)
-      ≡⟨⟩ -- Unapply pure
-        pure (f x)
-      ∎
-    interchange ⦃ isLawful ⦄ Nothing y =
-      begin
-        Nothing <*> pure y
-      ≡⟨⟩ -- Apply <*>
-        Nothing
-      ≡⟨⟩ -- Unapply <*>
-        pure (_$ y) <*> Nothing
-      ∎
-    interchange ⦃ isLawful ⦄ (Just x) y =
-      begin
-        (Just x) <*> pure y
-      ≡⟨⟩ -- Apply <*>
-        Just (x y)
-      ≡⟨⟩ -- Unapply $
-        Just ((_$ y) x)
-      ≡⟨⟩ -- Unapply <*>
-        pure (_$ y) <*> Just x
-      ∎
+    identity ⦃ isLawful ⦄ = ApplicativeLawsMaybe.identity
+    composition ⦃ isLawful ⦄ = ApplicativeLawsMaybe.composition
+    homomorphism ⦃ isLawful ⦄ = ApplicativeLawsMaybe.homomorphism
+    interchange ⦃ isLawful ⦄ = ApplicativeLawsMaybe.interchange
     functor ⦃ isLawful ⦄ f Nothing = refl -- These are by definition.
     functor ⦃ isLawful ⦄ f (Just x) = refl
 \end{code}
 
 \noindent
 \textsc{Exercise 10.} Verify the monad laws for the list type. Hint: the proofs can be completed using simple properties of list comprehensions.
+
+\begin{code}
+module MonadLawsList where
+  leftIdentity : {a : Set} → (x : a) (f : a → List b) → ((return x) >>= f) ≡ f x
+  leftIdentity x f =
+    begin
+      (return x) >>= f
+    ≡⟨⟩ -- Apply return
+      (x ∷ []) >>= f
+    ≡⟨⟩ -- Apply >>=
+      f x ++ []
+    ≡⟨ ++-[] (f x) ⟩
+      f x
+    ∎
+  rightIdentity : {a : Set} → (xs : List a) → (xs >>= return) ≡ xs
+  rightIdentity [] = refl
+  rightIdentity (x ∷ xs) =
+    begin
+      (x ∷ xs) >>= return
+    ≡⟨⟩ -- Apply >>=
+      (return x) ++ (xs >>= return)
+    ≡⟨⟩ -- Apply return
+      (x ∷ []) ++ (xs >>= return)
+    ≡⟨ cong ((x ∷ []) ++_) (rightIdentity xs) ⟩
+      (x ∷ []) ++ xs
+    ≡⟨⟩ -- Apply ++
+      x ∷ xs
+    ∎
+  associativity : {a b c : Set}
+    → (xs : List a) → (f : a → List b) → (g : b → List c)
+    → (xs >>= (λ x → f x >>= g)) ≡ ((xs >>= f) >>= g)
+  associativity [] f g = refl
+  associativity (x ∷ xs) f g =
+    begin
+      (x ∷ xs) >>= (λ x → f x >>= g)
+    ≡⟨ {!   !} ⟩
+      ((x ∷ xs) >>= f) >>= g
+    ∎
+\end{code}
 
 \end{document}
  
