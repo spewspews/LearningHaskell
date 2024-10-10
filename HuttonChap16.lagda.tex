@@ -635,7 +635,8 @@ module LawfulApplicativeMaybe where
 
 \begin{code}
 module MonadLawsList where
-  leftIdentity : {a : Set} → (x : a) (f : a → List b) → ((return x) >>= f) ≡ f x
+  leftIdentity : {a : Set} → (x : a) (f : a → List b)
+    → ((return x) >>= f) ≡ f x
   leftIdentity x f =
     begin
       (return x) >>= f
@@ -646,6 +647,7 @@ module MonadLawsList where
     ≡⟨ ++-[] (f x) ⟩
       f x
     ∎
+
   rightIdentity : {a : Set} → (xs : List a) → (xs >>= return) ≡ xs
   rightIdentity [] = refl
   rightIdentity (x ∷ xs) =
@@ -660,6 +662,26 @@ module MonadLawsList where
     ≡⟨⟩ -- Apply ++
       x ∷ xs
     ∎
+\end{code}
+\begin{code}
+  ++-distrib : {a : Set} → (xs ys : List a) → (f : a → List b)
+    → ((xs >>= f) ++ (ys >>= f)) ≡ ((xs ++ ys) >>= f)
+  ++-distrib [] ys f = refl
+  ++-distrib (x ∷ xs) ys f =
+    begin
+      ((x ∷ xs) >>= f) ++ (ys >>= f)
+    ≡⟨⟩ -- Apply >>=
+      (f x ++ (xs >>= f)) ++ (ys >>= f)
+    ≡⟨ ++-assoc (f x) (xs >>= f) (ys >>= f) ⟩
+      f x ++ (xs >>= f) ++ (ys >>= f)
+    ≡⟨ cong (f x ++_) (++-distrib xs ys f) ⟩
+      f x ++ ((xs ++ ys) >>= f)
+    ≡⟨⟩ -- Unapply >>=
+      (x ∷ (xs ++ ys)) >>= f
+    ≡⟨⟩ -- Unapply ++
+      ((x ∷ xs) ++ ys) >>= f
+    ∎
+
   associativity : {a b c : Set}
     → (xs : List a) → (f : a → List b) → (g : b → List c)
     → (xs >>= (λ x → f x >>= g)) ≡ ((xs >>= f) >>= g)
@@ -667,10 +689,17 @@ module MonadLawsList where
   associativity (x ∷ xs) f g =
     begin
       (x ∷ xs) >>= (λ x → f x >>= g)
-    ≡⟨ {!   !} ⟩
+    ≡⟨⟩ -- Apply >>=
+      (f x >>= g) ++ (xs >>= (λ x → f x >>= g))
+    ≡⟨ cong ((f x >>= g) ++_) (associativity xs f g) ⟩
+      (f x >>= g) ++ ((xs >>= f) >>= g)
+    ≡⟨ ++-distrib (f x) (xs >>= f) g ⟩
+      (f x ++ (xs >>= f)) >>= g
+    ≡⟨⟩ -- Unapply inner >>=
       ((x ∷ xs) >>= f) >>= g
     ∎
 \end{code}
 
 \end{document}
+ 
  
