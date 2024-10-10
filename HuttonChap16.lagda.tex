@@ -26,7 +26,6 @@ module HuttonChap16 where
 
 open import Haskell.Prelude
 open import Haskell.Law.Equality using (sym; begin_; _≡⟨⟩_; step-≡; _∎; cong)
-open import Haskell.Law.Eq.Def using (IsLawfulEq; eqReflexivity)
 open import Haskell.Law.Num.Def using (+-assoc; +-comm)
 open import Haskell.Law.Num.Int using (iLawfulNumInt)
 \end{code}
@@ -295,6 +294,7 @@ compile-exec-eval e =
 Complete the proof of the correctness of replicate by showing that it produces a list with identical elements, \verb!all (== x) (replicate n x)!, by induction on $n ≥ 0$. Hint: show that the property is always \verb!True!.
 
 \begin{code}
+open import Haskell.Law.Eq.Def using (IsLawfulEq; eqReflexivity)
 all-repl : ⦃ iEq : Eq a ⦄ → ⦃ IsLawfulEq a ⦄ → (n : Nat) → (x : a)
     → all (_== x) (replicate n x) ≡ True
 all-repl zero x = refl
@@ -647,20 +647,38 @@ module MonadLawsList where
     ≡⟨ ++-[] (f x) ⟩
       f x
     ∎
-
-  rightIdentity : {a : Set} → (xs : List a) → (xs >>= return) ≡ xs
-  rightIdentity [] = refl
-  rightIdentity (x ∷ xs) =
+\end{code}
+\begin{code}
+  fmap2bind : {a b : Set} → (f : a → b) → (xs : List a)
+    → fmap f xs ≡ (xs >>= (return ∘ f))
+  fmap2bind f [] = refl
+  fmap2bind f (x ∷ xs) =
     begin
-      (x ∷ xs) >>= return
-    ≡⟨⟩ -- Apply >>=
-      (return x) ++ (xs >>= return)
-    ≡⟨⟩ -- Apply return
-      (x ∷ []) ++ (xs >>= return)
-    ≡⟨ cong ((x ∷ []) ++_) (rightIdentity xs) ⟩
-      (x ∷ []) ++ xs
-    ≡⟨⟩ -- Apply ++
-      x ∷ xs
+      fmap f (x ∷ xs)
+    ≡⟨⟩ -- Apply fmap
+      (f x ∷ []) ++ fmap f xs
+    ≡⟨ cong ((f x ∷ []) ++_) (fmap2bind f xs) ⟩
+      (f x ∷ []) ++ (xs >>= (return ∘ f))
+    ≡⟨⟩ -- Unapply return
+      (return (f x)) ++ (xs >>= (return ∘ f))
+    ≡⟨⟩ -- Unapply ∘
+      (return ∘ f) x ++ (xs >>= (return ∘ f))
+    ≡⟨⟩ -- Unapply >>=
+      (x ∷ xs) >>= (return ∘ f)
+    ∎
+\end{code}
+\begin{code}
+  import Haskell.Law.Functor as Functor
+  rightIdentity : {a : Set} → (xs : List a) → (xs >>= return) ≡ xs
+  rightIdentity xs =
+    begin
+      xs >>= return
+    ≡⟨⟩ -- Unapply id
+      xs >>= (return ∘ id)
+    ≡⟨ sym (fmap2bind id xs) ⟩
+      map id xs
+    ≡⟨ Functor.identity xs ⟩
+      xs
     ∎
 \end{code}
 \begin{code}
@@ -681,16 +699,17 @@ module MonadLawsList where
     ≡⟨⟩ -- Unapply ++
       ((x ∷ xs) ++ ys) >>= f
     ∎
-
+\end{code}
+\begin{code}
   associativity : {a b c : Set}
     → (xs : List a) → (f : a → List b) → (g : b → List c)
-    → (xs >>= (λ x → f x >>= g)) ≡ ((xs >>= f) >>= g)
+    → (xs >>= λ x → f x >>= g) ≡ ((xs >>= f) >>= g)
   associativity [] f g = refl
   associativity (x ∷ xs) f g =
     begin
       (x ∷ xs) >>= (λ x → f x >>= g)
     ≡⟨⟩ -- Apply >>=
-      (f x >>= g) ++ (xs >>= (λ x → f x >>= g))
+      (f x >>= g) ++ (xs >>= λ x → f x >>= g)
     ≡⟨ cong ((f x >>= g) ++_) (associativity xs f g) ⟩
       (f x >>= g) ++ ((xs >>= f) >>= g)
     ≡⟨ ++-distrib (f x) (xs >>= f) g ⟩
@@ -699,7 +718,75 @@ module MonadLawsList where
       ((x ∷ xs) >>= f) >>= g
     ∎
 \end{code}
+\begin{code}
+  sequence2bind : {a b : Set}
+    → (fs : List (a → b)) → (xs : List a)
+    → (fs <*> xs) ≡ (fs >>= λ f → (xs >>= (return ∘ f)))
+  sequence2bind [] xs = refl
+  sequence2bind (f ∷ fs) xs =
+    begin
+      f ∷ fs <*> xs
+    ≡⟨⟩ -- Apply <*>
+      fmap f xs ++ (fs <*> xs)
+    ≡⟨ cong (_++ (fs <*> xs)) (fmap2bind f xs) ⟩
+      xs >>= (return ∘ f) ++ (fs <*> xs)
+    ≡⟨ cong (xs >>= (return ∘ f) ++_) (sequence2bind fs xs) ⟩
+      xs >>= (return ∘ f)
+        ++ (fs >>= λ f → (xs >>= (return ∘ f)))
+    ≡⟨⟩ -- Unapply λ
+      ((λ f → (xs >>= (return ∘ f))) f)
+        ++ (fs >>= λ f → (xs >>= (return ∘ f)))
+    ≡⟨⟩ -- Unapply >>=
+      (f ∷ fs) >>= (λ f → (xs >>= (return ∘ f)))
+    ∎
+\end{code}
+\begin{code}
+  rSequence2rBind : {a b : Set} → (xs : List a) → (ys : List b)
+    → (xs *> ys) ≡ (xs >> ys)
+  rSequence2rBind [] ys = refl
+  rSequence2rBind (x ∷ xs) ys =
+    begin
+      (x ∷ xs) *> ys
+    ≡⟨⟩ -- Apply *>
+      (const id x) ∷ (fmap (const id) xs) <*> ys
+    ≡⟨⟩ -- Apply <*>
+      fmap (const id x) ys ++ (fmap (const id) xs <*> ys)
+    ≡⟨⟩ -- Apply const
+      fmap id ys ++ (fmap (const id) xs <*> ys)
+    ≡⟨ cong (_++ (fmap (const id) xs <*> ys)) (Functor.identity ys) ⟩
+      ys ++ (fmap (const id) xs <*> ys)
+    ≡⟨⟩ -- Unapply *>
+      ys ++ (xs *> ys)
+    ≡⟨ cong (ys ++_) (rSequence2rBind xs ys) ⟩
+      ys ++ (xs >> ys)
+    ≡⟨⟩ -- Apply >>
+      ys ++ (xs >>= λ x → ys)
+    ≡⟨⟩ -- Unapply λ
+      (λ x → ys) x ++ (xs >>= λ x → ys)
+    ≡⟨⟩ -- Unapply >>=
+      (x ∷ xs) >>= (λ x → ys)
+    ≡⟨⟩ -- Unapply >>
+      (x ∷ xs) >> ys
+    ∎
+\end{code}
+\begin{code}
+module LawfulMonadList where
+  open import Haskell.Law.Applicative.List
+  open import Haskell.Law.Monad.Def
+    using (IsLawfulMonad; leftIdentity; rightIdentity;
+      associativity; pureIsReturn; sequence2bind; fmap2bind;
+      rSequence2rBind)
+\end{code}
+\begin{code}
+  instance
+    isLawful : IsLawfulMonad List
+    leftIdentity ⦃ isLawful ⦄ = MonadLawsList.leftIdentity
+    rightIdentity ⦃ isLawful ⦄ = MonadLawsList.rightIdentity
+    associativity ⦃ isLawful ⦄ = MonadLawsList.associativity
+    pureIsReturn ⦃ isLawful ⦄ _ = refl -- By definition
+    sequence2bind ⦃ isLawful ⦄ = MonadLawsList.sequence2bind
+    fmap2bind ⦃ isLawful ⦄ = MonadLawsList.fmap2bind
+    rSequence2rBind ⦃ isLawful ⦄ = MonadLawsList.rSequence2rBind
+\end{code}
 
 \end{document}
- 
- 
