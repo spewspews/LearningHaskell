@@ -88,10 +88,10 @@ space :: Parser ()
 space = void $ many $ sat isSpace
 
 int :: Parser Int
-int = (\_ n -> -n) <$> char '-' <*> nat <|> nat
+int = (\n -> -n) <$> (char '-' *> nat) <|> nat
 
 token :: Parser a -> Parser a
-token p = (\_ p _ -> p) <$> space <*> p <*> space
+token p = space *> p <* space
 
 identifier :: Parser String
 identifier = token ident
@@ -114,36 +114,37 @@ nats = do
     symbol "]"
     return $ n : ns
 -}
-nats =
-    (\_ n ns _ -> n : ns)
-        <$> symbol "["
-        <*> natural
-        <*> many ((\_ n -> n) <$> symbol "," <*> natural)
-        <*> symbol "]"
+nats = symbol "[" *> ((:) <$> natural <*> many (symbol "," *> natural)) <* symbol "]"
+
+zero :: Parser Int
+zero = P $ \s -> Just (0, s)
+
+one :: Parser Int
+one = P $ \s -> Just (1, s)
 
 expr :: Parser Int
+{-
+expr = (+) <$> term <*> (symbol "+" *> expr <|> zero)
+-}
 expr = do
     t <- term
-    do
-        symbol "+"
-        e <- expr
-        return (t + e)
-        <|> return t
+    e <- symbol "+" *> expr <|> zero
+    return $ t + e
 
 term :: Parser Int
+{-
+term = (*) <$> factor <*> (term <|> one)
+-}
 term = do
     f <- factor
-    do
-        symbol "*"
-        t <- term
-        return $ f * t
-        <|> return f
+    t <- symbol "*" *> term <|> one
+    return $ f * t
 
 factor :: Parser Int
-factor =
-    do
-        symbol "("
-        e <- expr
-        symbol ")"
-        return e
-        <|> natural
+factor = symbol "(" *> expr <* symbol ")" <|> natural
+
+eval :: String -> Int
+eval s = case parse expr s of
+    Just (n, "") -> n
+    Just (_, out) -> error $ "Unused input " ++ out
+    Nothing -> error "Invalid input"
