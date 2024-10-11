@@ -19,13 +19,13 @@ parse = fromList . reverse . (END :) . fst . go [[]]
       '+' -> go ([FORK (-l) 1] : prevOps : opss) cs
       '?' -> go ((prevOps ++ [FORK 1 (l + 1)]) : opss) cs
       '(' -> case s of
-        (')' : cs) -> go (ops : prevOps : opss) cs
+        ')' : cs -> go (ops : prevOps : opss) cs
         _ -> error "Bad regular expression: missing closing parenthesis"
         where
           (ops, s) = go [[]] cs
-      ')' -> (concat (prevOps : opss), c : cs)
+      ')' -> (concat $ prevOps : opss, c : cs)
       '\\' -> case cs of
-        (c : cs) -> go ([CHAR c] : prevOps : opss) cs
+        c : cs -> go ([CHAR c] : prevOps : opss) cs
         _ -> error "Bad regular expression: escape sequence"
       c -> go ([CHAR c] : prevOps : opss) cs
       where
