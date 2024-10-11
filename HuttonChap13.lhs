@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage[letterpaper,margin=1.5in]{geometry}
+\usepackage[paperwidth=5.5in,paperheight=8.5in,margin=0.5in,top=.6in,bottom=.6in]{geometry}
 \usepackage{fontspec}
 \usepackage{unicode-math}
 \usepackage{fancyvrb}
@@ -270,7 +270,7 @@ process :: Char -> String -> IO ()
 process c s
     | c `elem` "qQ\ESC" = quit
     | c `elem` "d D\BS\DEL" = delete s
-    | c `elem` "=\n" = eval s
+    | c `elem` "=\n" = eval' s
     | c `elem` "cC" = clear
     | otherwise = press c s
 
@@ -572,31 +572,55 @@ powerE :: Parser Int
 powerE = baseE
 \end{code}
 
-\textsc{Exercise 8}\quad Consider expressions built up from natural numbers using a subtraction operator that is assumed to associate to the left.
+\textsc{Exercise 8:} Consider expressions built up from natural numbers using a subtraction operator that is assumed to associate to the left.
 
 \begin{enumerate}
 \item Translate this description directly into a grammar.
 
 \begin{grammar}
-<expr> ::= <expr> (`-' <int> | <empty>)
+<expr> ::= (<nat> | <expr>) (`-' <nat> | <empty>)
 \end{grammar}
 
 \item Implement this grammar as a parser \verb-expr :: Parser Int-
 
+Two attempts, one putting the \texttt{natural} parser first in the alternative and the other putting \texttt{exprSub} first.
+
 \begin{code}
 exprSub :: Parser Int
-exprSub = (-) <$> exprSub <*> (symbol "-" *> natural) <|> zero
+exprSub = (-) <$> (natural <|> exprSub) <*> (symbol "-" *> natural <|> zero)
+
+exprSub' :: Parser Int
+exprSub' = (-) <$> (exprSub' <|> natural) <*> (symbol "-" *> natural <|> zero)
 \end{code}
 
 \item What is the problem with this parser?
 
-\textsc{Answer:} It never terminates.
-\item Show how it can be fixed. Hint: rewrite the parser using the repetition primitive \verb-many- and the library function \verb-foldl-.
+With \texttt{exprSub}, it will not parse more than one subtraction, never choosing \texttt{exprSub} in the expression \texttt{natural <|> exprSub}. For \texttt{exprSub'}, it never terminates, always trying to parse another \texttt{exprSub'} without terminating on \texttt{natural}.
+
+\item Show how it can be fixed. Hint: rewrite the parser using the repetition primitive \texttt{many} and the library function \texttt{foldl}.
 
 \begin{code}
-exprSub' :: Parser Int
-exprSub' = foldl (-) <$> natural <*> many (symbol "-" *> natural)
+exprSub'' :: Parser Int
+exprSub'' = foldl (-) <$> natural <*> many (symbol "-" *> natural)
 \end{code}
 \end{enumerate}
+
+\textsc{Question 9:} Modify the calculator program to indicate the approximate position of an error rather than just sounding a beep, by using the fact that the parser returns the unconsumed part of the input string.
+\vspace{8pt}
+
+Replace \texttt{eval} with the following code which displays the partial result along with the portion of the string that failed to parse. Pressing any character clears the error portion and continues with the calculation so far.
+
+\begin{code}
+eval' :: String -> IO ()
+eval' s = case parse expr s of
+    Just (n, []) -> calc $ show n
+    Just (n, s') -> do
+        display $ show n ++ " E:" ++ s'
+        getCh
+        calc $ show n
+    Nothing -> do
+        beep
+        calc s
+\end{code}
 
 \end{document}
