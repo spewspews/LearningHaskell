@@ -15,16 +15,14 @@ parse = fromList . reverse . (END :) . concat . fst . go [[]]
     go ops "" = (ops, "")
     go ops (c : cs) = case c of
       '.' -> go ([DOT] : ops) cs
-      '*' ->
-        go (([FORK (-l) 1] ++ op' ++ [FORK 1 (l + 2)]) : ops') cs
+      '*' -> go (([FORK (-l) 1] ++ op' ++ [FORK 1 (l + 2)]) : ops') cs
         where
           op' : ops' = ops
           l = length op'
       '+' -> go ([FORK (-l) 1] : ops) cs
         where
           l = length $ head ops
-      '?' ->
-        go ((op' ++ [FORK 1 (l + 1)]) : ops') cs
+      '?' -> go ((op' ++ [FORK 1 (l + 1)]) : ops') cs
         where
           op' : ops' = ops
           l = length op'
