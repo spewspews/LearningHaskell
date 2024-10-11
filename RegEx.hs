@@ -1,0 +1,40 @@
+import Data.Vector (Vector, fromList, (!))
+
+data Op
+  = DOT
+  | CHAR Char
+  | FORK Int Int
+  | END
+  deriving (Show, Ord, Eq, Read)
+
+type Regex = Vector Op
+
+parse :: String -> Regex
+parse = fromList . reverse . (END :) . fst . go ([], 0)
+  where
+    go (ops, i) [] = (ops, [])
+    go (ops, i) ('.' : cs) = go (DOT : ops, 1) cs
+    go (ops, i) ('*' : cs) =
+      go (FORK (-i) 1 : take i ops ++ FORK 1 (i + 2) : drop i ops, i + 2) cs
+    go (ops, i) ('+' : cs) = go (FORK (-i) 1 : ops, i + 1) cs
+    go (ops, i) ('?' : cs) =
+      go (take i ops ++ FORK 1 (i + 1) : drop i ops, i + 1) cs
+    go (ops, i) ('(' : cs) =
+      if c' /= ')'
+        then error "Bad Regular Expression"
+        else go (ops' ++ ops, length ops') cs'
+      where
+        (ops', c' : cs') = go ([], 0) cs
+    go (ops, i) s@(')' : cs) = (ops, s)
+    go (ops, i) (c : cs) = go (CHAR c : ops, 1) cs
+
+match :: Regex -> String -> Bool
+match r = elem END . go [0] []
+  where
+    go [] next (_ : cs) = go (0 : next) [] cs
+    go (i : ops) next s@(c : cs) = case r ! i of
+      DOT -> go ops (i + 1 : next) s
+      CHAR c' -> if c == c' then go ops (i + 1 : next) s else go ops next s
+      FORK f g -> go (i + f : i + g : ops) next s
+      END -> [END]
+    go cur _ [] = map (r !) cur
