@@ -40,7 +40,8 @@ Proving the first fact about replicate:
 replicate : {a : Set} → Nat → a → List a
 replicate zero _ = []
 replicate (suc n) x = x ∷ replicate n x
-
+\end{code}
+\begin{code}
 len-repl : {A : Set} → (n : Nat) → (x : A) → lengthNat (replicate n x) ≡ n
 len-repl zero x = refl
 len-repl (suc n) x =
@@ -70,7 +71,6 @@ Some facts about append:
       x ∷ xs
     ∎
 \end{code}
-
 \begin{code}
 ++-assoc : {a : Set} → (xs ys zs : List a)
     → (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
@@ -103,18 +103,19 @@ data Tree (a : Set) : Set where
     Leaf : a → Tree a
     Node : Tree a → Tree a → Tree a
 {-# COMPILE AGDA2HS Tree #-}
-
+\end{code}
+\begin{code}
 flatten : {a : Set} → Tree a → List a
 flatten (Leaf x) = x ∷ []
 flatten (Node tl tr) = flatten tl ++ flatten tr
 {-# COMPILE AGDA2HS flatten #-}
-
+\end{code}
+\begin{code}
 flatten' : {a : Set } → Tree a → List a → List a
 flatten' (Leaf x) xs = x ∷ xs
 flatten' (Node tₗ tᵣ) xs = flatten' tₗ (flatten' tᵣ xs)
 {-# COMPILE AGDA2HS flatten' #-}
 \end{code}
-
 \begin{code}
 flatten'-flatten : {a : Set} → (t : Tree a) → (xs : List a)
     → flatten' t xs ≡ flatten t ++ xs
@@ -133,7 +134,8 @@ flatten'-flatten (Node tₗ tᵣ) xs =
   ≡⟨⟩ -- Unapply flatten
     flatten (Node tₗ tᵣ) ++ xs
   ∎
-
+\end{code}
+\begin{code}
 flatten'-≡-flatten : {a : Set} → (t : Tree a)
     → flatten' t [] ≡ flatten t
 flatten'-≡-flatten (Leaf x) = refl
@@ -161,79 +163,87 @@ data Expr : Set where
     Val : Int → Expr
     Add : Expr → Expr → Expr
 {-# COMPILE AGDA2HS Expr #-}
-
+\end{code}
+\begin{code}
 eval : Expr → Int
 eval (Val n) = n
 eval (Add x y) = eval x + eval y
 {-# COMPILE AGDA2HS eval #-}
-
+\end{code}
+\begin{code}
 Stack = List Int
 {-# COMPILE AGDA2HS Stack #-}
-
+\end{code}
+\begin{code}
 data Op : Set where
     PUSH : Int → Op
     ADD : Op
 {-# COMPILE AGDA2HS Op #-}
 \end{code}
-
 \begin{code}
 Code = List Op
 {-# COMPILE AGDA2HS Code #-}
-
+\end{code}
+\begin{code}
 exec : Code → Stack → Stack
 exec [] s = s
 exec (PUSH n ∷ c) s = exec c $ n ∷ s
 exec (ADD ∷ c) (m ∷ n ∷ s) = exec c $ n + m ∷ s
 exec (ADD ∷ c) _ = []
 {-# COMPILE AGDA2HS exec #-}
-
-comp : Expr → Code → Code
-comp (Val n) c = PUSH n ∷ c
-comp (Add x y) c = comp x $ comp y $ ADD ∷ c
-{-# COMPILE AGDA2HS comp #-}
-
-comp-exec-eval : (e : Expr) → (c : Code) → (s : Stack)
-    → exec (comp e c) s ≡ exec c (eval e ∷ s)
-comp-exec-eval (Val n) c s =
-  begin
-    exec (comp (Val n) c) s
-  ≡⟨⟩ -- Apply comp
-    exec (PUSH n ∷ c) s
-  ≡⟨⟩ -- Apply exec
-    exec c (n ∷ s)
-  ≡⟨⟩ -- Unapply eval
-    exec c (eval (Val n) ∷ s)
-  ∎
-comp-exec-eval (Add x y) c s =
-  begin
-    exec (comp (Add x y) c) s
-  ≡⟨⟩ -- Apply comp
-    exec (comp x $ comp y $ ADD ∷ c) s
-  ≡⟨ comp-exec-eval x (comp y $ ADD ∷ c) s ⟩ -- Induction
-    exec (comp y $ ADD ∷ c) (eval x ∷ s)
-  ≡⟨ comp-exec-eval y (ADD ∷ c) (eval x ∷ s) ⟩ -- Induction Again
-    exec (ADD ∷ c) (eval y ∷ eval x ∷ s)
-  ≡⟨⟩ -- Apply exec
-    exec c ((eval x) + (eval y) ∷ s)
-  ≡⟨⟩ -- Unapply eval
-    exec c (eval (Add x y) ∷ s)
-  ∎
-
-compile : Expr → Code
-compile e = comp e []
-{-# COMPILE AGDA2HS compile #-}
-
-compile-exec-eval : (e : Expr) → exec (compile e) [] ≡ eval e ∷ []
-compile-exec-eval e =
-  begin
-    exec (compile e) []
-  ≡⟨⟩ -- Apply compile
-    exec (comp e []) []
-  ≡⟨ comp-exec-eval e [] [] ⟩
-    exec [] (eval e ∷ [])
-  ≡⟨⟩ -- Apply exec
-    eval e ∷ []
-  ∎
+\end{code}
+\begin{code}
+module CompilerCorrectness where
+  comp : Expr → Code → Code
+  comp (Val n) c = PUSH n ∷ c
+  comp (Add x y) c = comp x $ comp y $ ADD ∷ c
+  {-# COMPILE AGDA2HS comp #-}
+\end{code}
+\begin{code}
+  comp-exec-eval : (e : Expr) → (c : Code) → (s : Stack)
+      → exec (comp e c) s ≡ exec c (eval e ∷ s)
+  comp-exec-eval (Val n) c s =
+    begin
+      exec (comp (Val n) c) s
+    ≡⟨⟩ -- Apply comp
+      exec (PUSH n ∷ c) s
+    ≡⟨⟩ -- Apply exec
+      exec c (n ∷ s)
+    ≡⟨⟩ -- Unapply eval
+      exec c (eval (Val n) ∷ s)
+    ∎
+  comp-exec-eval (Add x y) c s =
+    begin
+      exec (comp (Add x y) c) s
+    ≡⟨⟩ -- Apply comp
+      exec (comp x $ comp y $ ADD ∷ c) s
+    ≡⟨ comp-exec-eval x (comp y $ ADD ∷ c) s ⟩ -- Induction
+      exec (comp y $ ADD ∷ c) (eval x ∷ s)
+    ≡⟨ comp-exec-eval y (ADD ∷ c) (eval x ∷ s) ⟩ -- Induction Again
+      exec (ADD ∷ c) (eval y ∷ eval x ∷ s)
+    ≡⟨⟩ -- Apply exec
+      exec c ((eval x) + (eval y) ∷ s)
+    ≡⟨⟩ -- Unapply eval
+      exec c (eval (Add x y) ∷ s)
+    ∎
+\end{code}
+\begin{code}
+  compile : Expr → Code
+  compile e = comp e []
+  {-# COMPILE AGDA2HS compile #-}
+\end{code}
+\begin{code}
+  compile-exec-eval : (e : Expr) → exec (compile e) [] ≡ eval e ∷ []
+  compile-exec-eval e =
+    begin
+      exec (compile e) []
+    ≡⟨⟩ -- Apply compile
+      exec (comp e []) []
+    ≡⟨ comp-exec-eval e [] [] ⟩
+      exec [] (eval e ∷ [])
+    ≡⟨⟩ -- Apply exec
+      eval e ∷ []
+    ∎
 \end{code}
 
 \noindent
@@ -268,6 +278,8 @@ compile-exec-eval e =
   ≡⟨ cong suc (+-zero n) ⟩
     suc n
   ∎
+\end{code}
+\begin{code}
 +-commut : (n m : Nat) → n + m ≡ m + n
 +-commut zero m =
   begin
@@ -339,6 +351,8 @@ take-drop-nat (suc n) (x ∷ xs) =
   ≡⟨ cong (x ∷_) (take-drop-nat n xs) ⟩
     x ∷ xs
   ∎
+\end{code}
+\begin{code}
 take-drop : {a : Set} → (n : Int) → ⦃ iNN : IsNonNegativeInt n ⦄
     → (xs : List a) → take n xs ++ drop n xs ≡ xs
 take-drop n xs =
@@ -359,12 +373,14 @@ nLeaves : {a : Set} → Tree a → Int
 nLeaves (Leaf x) = 1
 nLeaves (Node tₗ tᵣ) = nLeaves tₗ + nLeaves tᵣ
 {-# COMPILE AGDA2HS nLeaves #-}
-
+\end{code}
+\begin{code}
 nNodes : {a : Set} → Tree a → Int
 nNodes (Leaf x) = 0
 nNodes (Node tₗ tᵣ) = 1 + nNodes tₗ + nNodes tᵣ
 {-# COMPILE AGDA2HS nNodes #-}
-
+\end{code}
+\begin{code}
 leaves-nodes : {a : Set} → (t : Tree a)
     → nLeaves t ≡ 1 + nNodes t
 leaves-nodes (Leaf x) = refl
@@ -412,6 +428,8 @@ module FunctorLawsMaybe where
     ≡⟨⟩ -- Unapply id
       id (Just x)
     ∎
+\end{code}
+\begin{code}
   composition : {a b c : Set}
     → (m : Maybe a) → (f : a → b) → (g : b → c)
     → fmap (g ∘ f) m ≡ (fmap g ∘ fmap f) m
@@ -441,6 +459,8 @@ module FunctorLawsMaybe where
     ≡⟨⟩ -- Unapply ∘
       (fmap g ∘ fmap f) (Just x)
     ∎
+\end{code}
+\begin{code}
 module LawfulFunctorMaybe where
   open import Haskell.Law.Functor.Def
     using (IsLawfulFunctor; identity; composition)
@@ -459,12 +479,16 @@ treeMap : {a b : Set} → (a → b) → (Tree a) → (Tree b)
 treeMap f (Leaf x) = Leaf (f x)
 treeMap f (Node tₗ tᵣ) = Node (treeMap f tₗ) (treeMap f tᵣ)
 {-# COMPILE AGDA2HS treeMap #-}
+\end{code}
+\begin{code}
 dft : DefaultFunctor Tree
 dft = record { fmap = treeMap }
 instance
   iFunctorTree : Functor Tree
   iFunctorTree = record { DefaultFunctor dft }
   {-# COMPILE AGDA2HS iFunctorTree #-}
+\end{code}
+\begin{code}
 module FunctorLawsTree where
   identity : (t : Tree a) → (fmap id) t ≡ id t
   identity (Leaf x) = refl
@@ -480,6 +504,8 @@ module FunctorLawsTree where
     ≡⟨⟩ -- Apply and unapply id
       id (Node tₗ tᵣ)
     ∎
+\end{code}
+\begin{code}
   composition : (t : Tree a) → (f : a → b) → (g : b → c)
     → fmap (g ∘ f) t ≡ (fmap g ∘ fmap f) t
   composition (Leaf x) f g = refl
@@ -499,6 +525,8 @@ module FunctorLawsTree where
     ≡⟨⟩ -- Unapply ∘
       (fmap g ∘ fmap f) (Node tₗ tᵣ)
     ∎
+\end{code}
+\begin{code}
 module LawfulFunctorTree where
   open import Haskell.Law.Functor.Def
     using (IsLawfulFunctor; identity; composition)
@@ -530,7 +558,8 @@ module ApplicativeLawsMaybe where
     ≡⟨⟩ -- Apply id
       Just x
     ∎
-
+\end{code}
+\begin{code}
   composition : {a b c : Set}
     → (x : Maybe (b → c)) → (y : Maybe (a → b)) → (z : Maybe a)
     → (pure _∘_ <*> x <*> y <*> z) ≡ (x <*> (y <*> z))
@@ -561,7 +590,6 @@ module ApplicativeLawsMaybe where
   composition (Just x) (Just y) Nothing =
     refl -- Same kind of proof as above.
 \end{code}
-
 \begin{code}
   composition (Just x) (Just y) (Just z) =
     begin
@@ -579,7 +607,8 @@ module ApplicativeLawsMaybe where
     ≡⟨⟩ -- Unapply <*>
       Just x <*> (Just y <*> Just z)
     ∎
-
+\end{code}
+\begin{code}
   homomorphism : {a b : Set} → (f : a → b) (x : a)
     → ((pure f) <*> (pure x)) ≡ (pure (f x))
   homomorphism f x =
@@ -592,7 +621,8 @@ module ApplicativeLawsMaybe where
     ≡⟨⟩ -- Unapply pure
       pure (f x)
     ∎
-
+\end{code}
+\begin{code}
   interchange : {a b : Set} → (x : Maybe (a → b)) (y : a)
     → (x <*> (pure y)) ≡ (pure (λ f → f y) <*> x)
   interchange Nothing y =
@@ -614,7 +644,6 @@ module ApplicativeLawsMaybe where
       pure (_$ y) <*> Just x
     ∎
 \end{code}
-
 \begin{code}
 module LawfulApplicativeMaybe where
   open import Haskell.Law.Applicative.Def
@@ -787,6 +816,60 @@ module LawfulMonadList where
     sequence2bind ⦃ isLawful ⦄ = MonadLawsList.sequence2bind
     fmap2bind ⦃ isLawful ⦄ = MonadLawsList.fmap2bind
     rSequence2rBind ⦃ isLawful ⦄ = MonadLawsList.rSequence2rBind
+\end{code}
+
+\noindent
+\textsc{Exercise 11.} Given the equation \verb!comp' e c! $=$ \verb!comp e ++ c!, show how to construct the recursive definition for \verb!comp'!, by induction on \texttt{e}.
+
+\begin{code}
+module Exercise11 where
+  module CC = CompilerCorrectness
+  comp : Expr → Code
+  comp (Val n) = PUSH n ∷ []
+  comp (Add eₗ eᵣ) = comp eₗ ++ comp eᵣ ++ ADD ∷ []
+
+  postulate
+    comp' : Expr → Code → Code
+    comp'-comp : (e : Expr) → (c : Code) → comp' e c ≡ comp e ++ c
+
+  comp'-def : (e : Expr) → (c : Code)
+    → comp' e c ≡ CC.comp e c
+  comp'-def (Val n) c =
+    begin
+      comp' (Val n) c
+    ≡⟨ comp'-comp (Val n) c ⟩
+      comp (Val n) ++ c
+    ≡⟨⟩ -- Apply comp
+      PUSH n ∷ [] ++ c
+    ≡⟨⟩ -- Apply ++
+      PUSH n ∷ c
+    ≡⟨⟩ -- Unapply CC.comp
+      CC.comp (Val n) c
+    ∎
+  comp'-def (Add eₗ eᵣ) c =
+    begin
+      comp' (Add eₗ eᵣ) c
+    ≡⟨ comp'-comp (Add eₗ eᵣ) c ⟩
+      comp (Add eₗ eᵣ) ++ c
+    ≡⟨⟩ -- Apply comp
+      (comp eₗ ++ (comp eᵣ ++ ADD ∷ [])) ++ c
+    ≡⟨ ++-assoc (comp eₗ) (comp eᵣ ++ ADD ∷ []) c ⟩
+      comp eₗ ++ ((comp eᵣ ++ ADD ∷ []) ++ c)
+    ≡⟨ cong (comp eₗ ++_) (++-assoc (comp eᵣ) (ADD ∷ []) c) ⟩
+      comp eₗ ++ (comp eᵣ ++ (ADD ∷ [] ++ c))
+    ≡⟨⟩ -- Apply ++
+      comp eₗ ++ comp eᵣ ++ ADD ∷ c
+    ≡⟨ cong (comp eₗ ++_) (sym (comp'-comp eᵣ (ADD ∷ c))) ⟩
+      comp eₗ ++ comp' eᵣ (ADD ∷ c)
+    ≡⟨ sym (comp'-comp eₗ (comp' eᵣ (ADD ∷ c))) ⟩
+      comp' eₗ (comp' eᵣ (ADD ∷ c))
+    ≡⟨ cong (comp' eₗ) (comp'-def eᵣ (ADD ∷ c)) ⟩
+      comp' eₗ (CC.comp eᵣ (ADD ∷ c))
+    ≡⟨ comp'-def eₗ (CC.comp eᵣ (ADD ∷ c)) ⟩
+      CC.comp eₗ (CC.comp eᵣ (ADD ∷ c))
+    ≡⟨⟩ -- Unapply CC.comp
+      CC.comp (Add eₗ eᵣ) c
+    ∎
 \end{code}
 
 \end{document}
