@@ -135,3 +135,42 @@ filterM p (x : xs) = do
     b <- p x
     ys <- filterM p xs
     return $ if b then x : ys else ys
+
+-- Exercise 1
+data Tree' a = Leaf' | Node' (Tree' a) a (Tree' a) deriving (Show)
+
+instance Functor Tree' where
+    fmap _ Leaf' = Leaf'
+    fmap f (Node' l x r) = Node' (fmap f l) (f x) (fmap f r)
+
+-- Exercise 2
+newtype Hom a b = Hom (a -> b)
+
+instance Functor (Hom a) where
+    -- fmap :: (b -> c) -> Hom a b -> Hom a c
+    -- fmap :: (b -> c) -> (a -> b) -> (a -> c)
+    fmap f (Hom g) = Hom (f . g)
+
+-- Exercise 3
+instance Applicative (Hom a) where
+    -- pure :: b -> Hom a b
+    -- pure :: b -> a -> b
+    pure = Hom . const
+
+    -- <*> :: Hom a (b -> c) -> Hom a b -> Hom a c
+    -- <*> :: (a -> b -> c) -> (a -> b) -> (a -> c)
+    Hom f <*> Hom x = Hom $ \y -> f y $ x y
+
+-- Exercise 4
+newtype ZipList a = Z [a] deriving (Show)
+
+instance Functor ZipList where
+    -- fmap :: (a -> b) -> ZipList a -> ZipList b
+    fmap f (Z x) = Z $ map f x
+
+instance Applicative ZipList where
+    -- pure :: a -> ZipList a
+    pure = Z . repeat
+
+    -- <*> :: ZipList (a -> b) -> ZipList a -> ZipList b
+    Z fs <*> Z xs = Z $ zipWith ($) fs xs
