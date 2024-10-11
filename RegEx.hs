@@ -12,7 +12,7 @@ type Regex = Vector Op
 parse :: String -> Regex
 parse = fromList . reverse . (END :) . fst . go ([], 0)
   where
-    go (ops, i) [] = (ops, [])
+    go (ops, i) "" = (ops, "")
     go (ops, i) (c : cs) = case c of
       '.' -> go (DOT : ops, 1) cs
       '*' ->
