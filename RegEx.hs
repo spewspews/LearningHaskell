@@ -44,7 +44,7 @@ add i st@(State s l) =
 match :: Regex -> String -> Bool
 match r s = go (add 0 empty) empty $ s ++ ['\NUL']
   where
-    go State {ops = []} next (_ : cs) = go (add 0 next) empty cs
+    go (State _ []) next (_ : cs) = go (add 0 next) empty cs
     go cur@(State _ (op : ops)) next s@(c : _) = case r ! op of
       DOT -> go cur {ops} (add (op + 1) next) s
       CHAR c' ->
