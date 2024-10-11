@@ -718,17 +718,17 @@ module MonadLawsList where
     ∎
 \end{code}
 \begin{code}
-  ++-distrib : {a : Set} → (xs ys : List a) → (f : a → List b)
+  >>=-distrib : {a : Set} → (xs ys : List a) → (f : a → List b)
     → ((xs >>= f) ++ (ys >>= f)) ≡ ((xs ++ ys) >>= f)
-  ++-distrib [] ys f = refl
-  ++-distrib (x ∷ xs) ys f =
+  >>=-distrib [] ys f = refl
+  >>=-distrib (x ∷ xs) ys f =
     begin
       ((x ∷ xs) >>= f) ++ (ys >>= f)
     ≡⟨⟩ -- Apply >>=
       (f x ++ (xs >>= f)) ++ (ys >>= f)
     ≡⟨ ++-assoc (f x) (xs >>= f) (ys >>= f) ⟩ -- Move parens
       f x ++ (xs >>= f) ++ (ys >>= f)
-    ≡⟨ cong (f x ++_) (++-distrib xs ys f) ⟩ -- Induction
+    ≡⟨ cong (f x ++_) (>>=-distrib xs ys f) ⟩ -- Induction
       f x ++ ((xs ++ ys) >>= f)
     ≡⟨⟩ -- Unapply >>=
       (x ∷ (xs ++ ys)) >>= f
@@ -748,7 +748,7 @@ module MonadLawsList where
       (f x >>= g) ++ (xs >>= λ x → f x >>= g)
     ≡⟨ cong ((f x >>= g) ++_) (associativity xs f g) ⟩ -- Induction
       (f x >>= g) ++ ((xs >>= f) >>= g)
-    ≡⟨ ++-distrib (f x) (xs >>= f) g ⟩ -- Move Parens
+    ≡⟨ >>=-distrib (f x) (xs >>= f) g ⟩ -- >>= distributes over ++
       (f x ++ (xs >>= f)) >>= g
     ≡⟨⟩ -- Unapply inner >>=
       ((x ∷ xs) >>= f) >>= g
