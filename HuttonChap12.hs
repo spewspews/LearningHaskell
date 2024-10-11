@@ -220,12 +220,9 @@ instance Applicative Expr where
     pure = Var
 
     -- <*> :: Expr (a -> b) -> Expr a -> Expr b
-    Var f <*> Var x = Var $ f x
-    Var f <*> Val x = Val x
-    Val x <*> Val y = Val y
-    Val x <*> Var y = Val x
-    Add fl fr <*> x = Add (fl <*> x) (fr <*> x)
-    f <*> Add l r = Add (f <*> l) (f <*> r)
+    ef <*> ex = do
+        f <- ef
+        f <$> ex
 
 instance Monad Expr where
     -- >>= :: Expr a -> (a -> Expr b) -> Expr b
@@ -243,9 +240,7 @@ newtype ST a = S {app :: State -> (a, State)}
 
 instance Functor ST where
     -- fmap :: (a -> b) -> ST a -> ST b
-    fmap f stx = do
-        x <- stx
-        return $ f x
+    fmap f stx = f <$> stx
 
 instance Applicative ST where
     -- pure :: a -> ST a
