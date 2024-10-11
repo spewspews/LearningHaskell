@@ -1,5 +1,7 @@
 import Data.Char
 import Data.List (sort)
+import Data.Map (Map, alter, findWithDefault, keys)
+import Data.Monoid (Sum (Sum), getSum)
 
 {-
 twice :: (a -> a) -> a -> a
@@ -81,15 +83,22 @@ channel = id
 votes :: [String]
 votes = ["Red", "Blue", "Green", "Blue", "Blue", "Red"]
 
-count :: (Eq a) => [a] -> a -> Int
-count xs x = length $ filter (== x) xs
+tally :: (Ord a) => [a] -> Map a Int
+tally = (getSum <$>) . foldr (alter (Just (Sum 1) <>)) mempty
+
+-- count xs x = length $ filter (== x) xs
+count :: (Ord a) => [a] -> a -> Int
+count vs v = findWithDefault 0 v $ tally vs
 
 rmdups :: (Eq a) => [a] -> [a]
 rmdups [] = []
 rmdups (x : xs) = x : rmdups (filter (/= x) xs)
 
+-- result vs = sort [(count vs v, v) | v <- rmdups vs]
 result :: (Ord a) => [a] -> [(Int, a)]
-result vs = sort [(count vs v, v) | v <- rmdups vs]
+result vs = sort $ map (\v -> (findWithDefault 0 v tallied, v)) $ keys tallied
+  where
+    tallied = tally vs
 
 winner :: (Ord a) => [a] -> a
 winner = snd . last . result
@@ -107,7 +116,7 @@ rmempty :: [[a]] -> [[a]]
 rmempty = filter (not . null)
 
 elim :: (Eq a) => a -> [[a]] -> [[a]]
-elim x = map (filter (/= x))
+elim x = map $ filter (/= x)
 
 rank :: (Ord a) => [[a]] -> [a]
 rank = map snd . result . map head . rmempty
@@ -179,5 +188,21 @@ map'' f = unfold null (f . head) (drop 1)
 iterate' :: (a -> a) -> a -> [a]
 iterate' = unfold (const False) id
 
--- Exercise 7
+-- Exercise 7 and 8
 -- Done above
+
+-- Exercise 9
+altMap :: (a -> b) -> (a -> b) -> [a] -> [b]
+altMap f g [] = []
+altMap f g (x : xs) = f x : altMap g f xs
+
+-- Exercise 10
+luhnDouble :: Int -> Int
+luhnDouble x
+  | d > 9 = d - 9
+  | otherwise = d
+  where
+    d = 2 * x
+
+luhn :: [Int] -> Bool
+luhn = (== 0) . (`mod` 10) . sum . altMap luhnDouble id
