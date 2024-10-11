@@ -187,39 +187,43 @@ Code = List Op
 \begin{code}
 exec : Code → Stack → Stack
 exec [] s = s
-exec (PUSH n ∷ c) s = exec c $ n ∷ s
-exec (ADD ∷ c) (m ∷ n ∷ s) = exec c $ n + m ∷ s
+exec (PUSH n ∷ c) s = exec c (n ∷ s)
+exec (ADD ∷ c) (m ∷ n ∷ s) = exec c (n + m ∷ s)
 exec (ADD ∷ c) _ = []
 {-# COMPILE AGDA2HS exec #-}
+comp : Expr → Code
+comp (Val n) = PUSH n ∷ []
+comp (Add eₗ eᵣ) = comp eₗ ++ comp eᵣ ++ ADD ∷ []
+{-# COMPILE AGDA2HS comp #-}
 \end{code}
 \begin{code}
 module CompilerCorrectness where
-  comp : Expr → Code → Code
-  comp (Val n) c = PUSH n ∷ c
-  comp (Add x y) c = comp x $ comp y $ ADD ∷ c
-  {-# COMPILE AGDA2HS comp #-}
+  comp' : Expr → Code → Code
+  comp' (Val n) c = PUSH n ∷ c
+  comp' (Add x y) c = comp' x $ comp' y (ADD ∷ c)
+  {-# COMPILE AGDA2HS comp' #-}
 \end{code}
 \begin{code}
-  comp-exec-eval : (e : Expr) → (c : Code) → (s : Stack)
-      → exec (comp e c) s ≡ exec c (eval e ∷ s)
-  comp-exec-eval (Val n) c s =
+  comp'-exec-eval : (e : Expr) → (c : Code) → (s : Stack)
+      → exec (comp' e c) s ≡ exec c (eval e ∷ s)
+  comp'-exec-eval (Val n) c s =
     begin
-      exec (comp (Val n) c) s
-    ≡⟨⟩ -- Apply comp
+      exec (comp' (Val n) c) s
+    ≡⟨⟩ -- Apply comp'
       exec (PUSH n ∷ c) s
     ≡⟨⟩ -- Apply exec
       exec c (n ∷ s)
     ≡⟨⟩ -- Unapply eval
       exec c (eval (Val n) ∷ s)
     ∎
-  comp-exec-eval (Add x y) c s =
+  comp'-exec-eval (Add x y) c s =
     begin
-      exec (comp (Add x y) c) s
-    ≡⟨⟩ -- Apply comp
-      exec (comp x $ comp y $ ADD ∷ c) s
-    ≡⟨ comp-exec-eval x (comp y $ ADD ∷ c) s ⟩ -- Induction
-      exec (comp y $ ADD ∷ c) (eval x ∷ s)
-    ≡⟨ comp-exec-eval y (ADD ∷ c) (eval x ∷ s) ⟩ -- Induction Again
+      exec (comp' (Add x y) c) s
+    ≡⟨⟩ -- Apply comp'
+      exec (comp' x $ comp' y $ ADD ∷ c) s
+    ≡⟨ comp'-exec-eval x (comp' y $ ADD ∷ c) s ⟩ -- Induction
+      exec (comp' y $ ADD ∷ c) (eval x ∷ s)
+    ≡⟨ comp'-exec-eval y (ADD ∷ c) (eval x ∷ s) ⟩ -- Induction Again
       exec (ADD ∷ c) (eval y ∷ eval x ∷ s)
     ≡⟨⟩ -- Apply exec
       exec c ((eval x) + (eval y) ∷ s)
@@ -229,7 +233,7 @@ module CompilerCorrectness where
 \end{code}
 \begin{code}
   compile : Expr → Code
-  compile e = comp e []
+  compile e = comp' e []
   {-# COMPILE AGDA2HS compile #-}
 \end{code}
 \begin{code}
@@ -238,8 +242,8 @@ module CompilerCorrectness where
     begin
       exec (compile e) []
     ≡⟨⟩ -- Apply compile
-      exec (comp e []) []
-    ≡⟨ comp-exec-eval e [] [] ⟩
+      exec (comp' e []) []
+    ≡⟨ comp'-exec-eval e [] [] ⟩
       exec [] (eval e ∷ [])
     ≡⟨⟩ -- Apply exec
       eval e ∷ []
@@ -505,17 +509,17 @@ module FunctorLawsTree where
     ∎
 \end{code}
 \begin{code}
-  comp : (t : Tree a) → (f : a → b) → (g : b → c)
+  composition : (t : Tree a) → (f : a → b) → (g : b → c)
     → fmap (g ∘ f) t ≡ (fmap g ∘ fmap f) t
-  comp (Leaf x) f g = refl
-  comp (Node tₗ tᵣ) f g =
+  composition (Leaf x) f g = refl
+  composition (Node tₗ tᵣ) f g =
     begin
       fmap (g ∘ f) (Node tₗ tᵣ)
     ≡⟨⟩ -- Apply fmap
       Node (fmap (g ∘ f) tₗ) (fmap (g ∘ f) tᵣ)
-    ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (comp tₗ f g) ⟩ -- Induction
+    ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (composition tₗ f g) ⟩ -- Induction
       Node ((fmap g ∘ fmap f) tₗ) (fmap (g ∘ f) tᵣ)
-    ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (comp tᵣ f g) ⟩ -- Induction
+    ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (composition tᵣ f g) ⟩ -- Induction
       Node ((fmap g ∘ fmap f) tₗ) ((fmap g ∘ fmap f) tᵣ)
     ≡⟨⟩ -- Unapply fmap
       fmap g (Node (fmap f tₗ) (fmap f tᵣ))
@@ -532,7 +536,7 @@ module LawfulFunctorTree where
   instance
     isLawful : IsLawfulFunctor Tree
     identity ⦃ isLawful ⦄ = FunctorLawsTree.identity
-    composition ⦃ isLawful ⦄ = FunctorLawsTree.comp
+    composition ⦃ isLawful ⦄ = FunctorLawsTree.composition
 \end{code}
 
 \noindent
@@ -547,6 +551,8 @@ module ApplicativeLawsMaybe where
     ≡⟨⟩ -- Apply pure and <*>
       Nothing
     ∎
+\end{code}
+\begin{code}
   identity (Just x) =
     begin
       pure id <*> Just x
@@ -588,8 +594,6 @@ module ApplicativeLawsMaybe where
     ∎
   composition (Just x) (Just y) Nothing =
     refl -- Same kind of proof as above.
-\end{code}
-\begin{code}
   composition (Just x) (Just y) (Just z) =
     begin
       pure _∘_ <*> Just x <*> Just y <*> Just z
@@ -657,6 +661,8 @@ module LawfulApplicativeMaybe where
     functor ⦃ isLawful ⦄ f Nothing = refl -- These are by definition.
     functor ⦃ isLawful ⦄ f (Just x) = refl
 \end{code}
+
+\clearpage
 
 \noindent
 \textsc{Exercise 10.} Verify the monad laws for the list type. Hint: the proofs can be completed using simple properties of list comprehensions.
@@ -823,19 +829,13 @@ module LawfulMonadList where
 
 \begin{code}
 module Exercise11 where
-  module CC = CompilerCorrectness
-  comp : Expr → Code
-  comp (Val n) = PUSH n ∷ []
-  comp (Add eₗ eᵣ) = comp eₗ ++ comp eᵣ ++ ADD ∷ []
-\end{code}
-\begin{code}
   postulate
     comp' : Expr → Code → Code
     comp'-comp : (e : Expr) → (c : Code) → comp' e c ≡ comp e ++ c
 \end{code}
 \begin{code}
-  comp'-def : (e : Expr) → (c : Code) → comp' e c ≡ CC.comp e c
-  comp'-def (Val n) c =
+  comp'-val : (n : Int) → (c : Code) → comp' (Val n) c ≡ (PUSH n ∷ c)
+  comp'-val n c =
     begin
       comp' (Val n) c
     ≡⟨ comp'-comp (Val n) c ⟩
@@ -844,34 +844,28 @@ module Exercise11 where
       PUSH n ∷ [] ++ c
     ≡⟨⟩ -- Apply ++
       PUSH n ∷ c
-    ≡⟨⟩ -- Unapply CC.comp
-      CC.comp (Val n) c
     ∎
 \end{code}
 \begin{code}
-  comp'-def (Add eₗ eᵣ) c =
+  comp'-add : (eₗ eᵣ : Expr) → (c : Code)
+    → comp' (Add eₗ eᵣ) c ≡ comp' eₗ (comp' eᵣ (ADD ∷ c))
+  comp'-add eₗ eᵣ c =
     begin
       comp' (Add eₗ eᵣ) c
     ≡⟨ comp'-comp (Add eₗ eᵣ) c ⟩ -- Postulate
       comp (Add eₗ eᵣ) ++ c
     ≡⟨⟩ -- Apply comp
-      (comp eₗ ++ (comp eᵣ ++ ADD ∷ [])) ++ c
+      (comp eₗ ++ comp eᵣ ++ ADD ∷ []) ++ c
     ≡⟨ ++-assoc (comp eₗ) (comp eᵣ ++ ADD ∷ []) c ⟩ -- Move parens
-      comp eₗ ++ ((comp eᵣ ++ ADD ∷ []) ++ c)
+      comp eₗ ++ (comp eᵣ ++ ADD ∷ []) ++ c
     ≡⟨ cong (comp eₗ ++_) (++-assoc (comp eᵣ) (ADD ∷ []) c) ⟩ -- Move parens
-      comp eₗ ++ (comp eᵣ ++ (ADD ∷ [] ++ c))
+      comp eₗ ++ (comp eᵣ ++ ADD ∷ [] ++ c)
     ≡⟨⟩ -- Apply ++
       comp eₗ ++ comp eᵣ ++ ADD ∷ c
-    ≡⟨ cong (comp eₗ ++_) (sym (comp'-comp eᵣ (ADD ∷ c))) ⟩ -- Postulate
+    ≡⟨ cong (comp eₗ ++_) (sym (comp'-comp eᵣ (ADD ∷ c))) ⟩ -- Induction
       comp eₗ ++ comp' eᵣ (ADD ∷ c)
-    ≡⟨ sym (comp'-comp eₗ (comp' eᵣ (ADD ∷ c))) ⟩ -- Postulate
+    ≡⟨ sym (comp'-comp eₗ (comp' eᵣ (ADD ∷ c))) ⟩ -- Induction
       comp' eₗ (comp' eᵣ (ADD ∷ c))
-    ≡⟨ cong (comp' eₗ) (comp'-def eᵣ (ADD ∷ c)) ⟩ -- Induction
-      comp' eₗ (CC.comp eᵣ (ADD ∷ c))
-    ≡⟨ comp'-def eₗ (CC.comp eᵣ (ADD ∷ c)) ⟩ -- Induction
-      CC.comp eₗ (CC.comp eᵣ (ADD ∷ c))
-    ≡⟨⟩ -- Unapply CC.comp
-      CC.comp (Add eₗ eᵣ) c
     ∎
 \end{code}
 
