@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 import Control.Applicative
+import Control.Monad (void)
 import Data.Char
 
 newtype Parser a = P {parse :: String -> Maybe (a, String)}
@@ -63,3 +64,28 @@ upper = sat isUpper
 
 letter :: Parser Char
 letter = sat isAlpha
+
+alphanum :: Parser Char
+alphanum = sat isAlphaNum
+
+char :: Char -> Parser Char
+char c = sat (== c)
+
+string :: String -> Parser String
+string "" = return ""
+string s@(x : xs) = do
+    char x
+    string xs
+    return s
+
+ident :: Parser String
+ident = (:) <$> lower <*> many alphanum
+
+nat :: Parser Int
+nat = read <$> some digit
+
+space :: Parser ()
+space = void $ many $ sat isSpace
+
+int :: Parser Int
+int = (\_ n -> -n) <$> char '-' <*> nat <|> nat
