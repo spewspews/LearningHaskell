@@ -447,13 +447,56 @@ instance
 \textsc{Exercise 8.} Given the instance declaration below, verify the functor laws for the \texttt{Tree} type, by induction on trees.
 
 \begin{code}
+module FunctorTree where
+  open import Haskell.Prim.Functor using (DefaultFunctor) 
+  open DefaultFunctor
+
+  dft : DefaultFunctor Tree
+  fmap dft f (Leaf x) = Leaf (f x)
+  fmap dft f (Node tₗ tᵣ) = Node (fmap dft f tₗ) (fmap dft f tᵣ)
+
 instance
   iFunctorTree : Functor Tree
-  fmap ⦃ iFunctorTree ⦄ f (Leaf x) = Leaf (f x)
-  fmap ⦃ iFunctorTree ⦄ f (Node tₗ tᵣ) = Node (fmap f tₗ) (fmap f tᵣ)
-  _<$_ ⦃ iFunctorTree ⦄ x t = fmap (λ b → x {{b}}) t
+  iFunctorTree = record{DefaultFunctor FunctorTree.dft}
   {-# COMPILE AGDA2HS iFunctorTree #-}
+\end{code}
+
+\begin{code}
+instance
+  lawfulFunctorTree : IsLawfulFunctor Tree
+  identity ⦃ lawfulFunctorTree ⦄ (Leaf x) = refl
+  identity ⦃ lawfulFunctorTree ⦄ (Node tₗ tᵣ) =
+    begin
+      fmap id (Node tₗ tᵣ)
+    ≡⟨⟩ -- Apply fmap
+      Node (fmap id tₗ) (fmap id tᵣ)
+    ≡⟨ cong (λ x → Node x (fmap id tᵣ)) (identity tₗ) ⟩
+      Node (id tₗ) (fmap id tᵣ)
+    ≡⟨ cong (Node (id tₗ)) (identity tᵣ) ⟩
+      Node (id tₗ) (id tᵣ)
+    ≡⟨⟩ -- Apply and unapply id
+      id (Node tₗ tᵣ)
+    ∎
+  composition ⦃ lawfulFunctorTree ⦄ (Leaf x) f g = refl
+  composition ⦃ lawfulFunctorTree ⦄ (Node tₗ tᵣ) f g =
+    begin
+      fmap (g ∘ f) (Node tₗ tᵣ)
+    ≡⟨⟩ -- Apply fmap
+      Node (fmap (g ∘ f) tₗ) (fmap (g ∘ f) tᵣ)
+    ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (composition tₗ f g) ⟩
+      Node ((fmap g ∘ fmap f) tₗ) (fmap (g ∘ f) tᵣ)
+    ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (composition tᵣ f g) ⟩
+      Node ((fmap g ∘ fmap f) tₗ) ((fmap g ∘ fmap f) tᵣ)
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (Node (fmap f tₗ) (fmap f tᵣ))
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (fmap f (Node tₗ tᵣ))
+    ≡⟨⟩ -- Unapply ∘
+      (fmap g ∘ fmap f) (Node tₗ tᵣ)
+    ∎
 \end{code}
 
 \end{document}
   
+ 
+ 
