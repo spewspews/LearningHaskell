@@ -18,6 +18,8 @@
 \setlength{\parindent}{1em}
 \setlist{noitemsep}
 
+\newcommand{\ttx}{\texttt}
+
 \begin{document}
 
 \begin{center}
@@ -97,8 +99,70 @@ comp (Add el er) = comp el ++ comp er ++ [ADD]
 e :: Expr
 e = Add (Add (Val 2) (Val 3)) (Val 4)
 \end{code}
+
+\noindent
 Compiler law version 1:
 \[\texttt{exec (comp e) [] = [eval e]}\]
 Compiler law version 2:
 \[\texttt{exec (comp e) s = eval e : s}\]
+This is proved in the book but the proof needs the distributivity property proved below.
+
+The distributivity property is that \texttt{exec} distributes over lists, that executing two pieces of code appended together is the same as executing the two pieces of code in sequence:
+\[\texttt{exec (c ++ d) s = exec d \$ exec c s}\]
+Inductive Case:
+\begin{align*}
+\ttx{exec ((PUSH n : c) ++ d) s} &= \ttx{exec (PUSH n : c ++ d) s} &\textrm{Apply }\ttx{++}\\
+&= \ttx{exec (c ++ d) (n : s)} &\textrm{Apply }\ttx{exec}\\
+&= \ttx{exec d \$ exec c (n : s)} &\textrm{Apply induction}\\
+&= \ttx{exec d \$ exec (PUSH n : c) s} &\textrm{Unapply exec}
+\end{align*}
+Other inductive case:
+\begin{align*}
+\ttx{exec ((ADD : c) ++ d) s} &= \ttx{exec (Add : c ++ d) (x : y : s')} &\textrm{Apply }\ttx{++}\\
+&= \ttx{exec (c ++ d) (y + x : s')}&\textrm{Apply }\ttx{exec}\\
+&= \ttx{exec d \$ exec c (y + x : s')}&\textrm{Apply induction}\\
+&=\ttx{exec d \$ exec (ADD : c) s}&\textrm{Unapply exec}
+\end{align*}
+
+\noindent
+Making append vanish with \ttx{comp}: a new \ttx{comp} that satisfies:
+\[\ttx{comp' e c} = \ttx{comp e ++ c}\]
+This will allow us to get rid of
+\begin{verbatim}
+comp (Add el er) = comp el ++ comp er ++ [ADD]
+\end{verbatim}
+to replace it with
+\begin{verbatim}
+comp' (Add el er) c = comp' el $ comp' er $ ADD : c
+\end{verbatim}
+In fact that's the definition:
+\begin{code}
+comp' :: Expr -> Code -> Code
+comp' (Val x) c = PUSH x : c
+comp' (Add el er) c = comp' el $ comp' er $ ADD : c
+\end{code}
+With this new \ttx{comp'} the validity with respect to \ttx{eval} is:
+\[\ttx{exec (comp' e c) s} = \ttx{exec c \$ eval e : s}\]
+The advantage of this new definition is we do not need the distributivity lemma, but can prove this directly:
+
+Base case:
+\begin{align*}
+\ttx{exec (comp' (Val x) c) s} &= \ttx{exec (PUSH x : c) s}\\
+&=\ttx{exec c \$ x : s}\\
+&=\ttx{exec c \$ eval (Val x) : s}
+\end{align*}
+Inductive case:
+\begin{align*}
+\ttx{exec (comp' (Add}&\ttx{ el er) c) s}\\
+&= \ttx{exec (comp' el \$ comp' er \$ ADD : c) s}\\
+&= \ttx{exec (comp' er \$ ADD : c) \$ eval el : s}\\
+&= \ttx{exec (ADD : c) \$ eval er : eval el : s}\\
+&= \ttx{exec c \$ eval el + eval er : s}\\
+&= \ttx{exec c \$ eval (Add el er) : s}
+\end{align*}
+
+\subsection*{Exercises}
+
+\textsc{Exercise 1:} Show that \(\ttx{add n \$ Succ m} = \ttx{Succ \$ add n m}\) by induction on \ttx{n}.
+
 \end{document}
