@@ -158,17 +158,16 @@ minimaxαβ _ _ (Node (g, _) [])
     | wins O g = (g, O)
     | wins X g = (g, X)
     | otherwise = (g, B)
-{-
-minimaxαβ α β (Node (g, p) ts) = go α g (next p) ts
+minimaxαβ α β (Node (g, _) ts) = go g α ts
   where
-    go α g best [] = (g, best)
-    go α g best (t@(Node (move, _) _) : ts) =
-        if β <= α' then (g', best') else go α' g' best' ts
+    go g α [] = (g, α)
+    go g α (t@(Node (move, O) _) : ts) =
+        if β <= α' then (g', α') else go g' α' ts
       where
         (_, score) = minimaxαβ (next β) (next α) t
-        (g', best') = if best < next score then (move, next score) else (g, best)
-        α' = max α best'
--}
+        (g', α') = if α < next score then (move, next score) else (g, α)
+
+{-
 minimaxαβ α β (Node (g, X) ts) = go g α ts
   where
     go g α [] = (g, α)
@@ -185,6 +184,7 @@ minimaxαβ α β (Node (g, O) ts) = go g β ts
       where
         (_, score) = minimaxαβ α β t
         (g', β') = if β > score then (move, score) else (g, β)
+-}
 
 bestmoves :: Tree (Grid, Player) -> [Tree (Grid, Player)]
 bestmoves (Node (g, best) ts) = filter (\(Node (_, p) _) -> p == best) ts
