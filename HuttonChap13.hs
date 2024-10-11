@@ -51,3 +51,9 @@ sat :: (Char -> Bool) -> Parser Char
 sat p = do
     c <- item
     if p c then return c else empty
+
+digit :: Parser Char
+digit = sat isDigit
+
+lower :: Parser Char
+lower = sat isLower
