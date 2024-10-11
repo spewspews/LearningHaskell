@@ -133,8 +133,7 @@ combine' (l, x) (r, y) =
 
 solutions' :: [Int] -> Int -> [Expr]
 solutions' l n = do
-    cl <- choices l
-    (e, m) <- results cl
+    (e, m) <- results =<< choices l
     guard (m == n)
     return e
 
