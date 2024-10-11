@@ -97,4 +97,33 @@ instance Traversable M where
     traverse _ (M Nothing) = pure $ M Nothing
 \end{code}
 
+\textsc{Exercise 4:} In a similar manner, show how the following type of binary trees with data in their nodes can be made into a foldable and traversable type:
+
+\begin{code}
+data Tree a = Leaf | Node (Tree a) a (Tree a) deriving (Show)
+
+instance Functor Tree where
+    fmap :: (a -> b) -> Tree a -> Tree b
+    fmap f (Node tl x tr) = Node (fmap f tl) (f x) (fmap f tr)
+    fmap _ Leaf = Leaf
+
+instance Foldable Tree where
+    foldMap :: (Monoid m) => (a -> m) -> Tree a -> m
+    foldMap f (Node tl x tr) = foldMap f tl <> f x <> foldMap f tr
+    foldMap _ Leaf = mempty
+
+instance Traversable Tree where
+    traverse :: (Applicative f) => (a -> f b) -> Tree a -> f (Tree b)
+    traverse f (Node tl x tr) =
+        Node <$> traverse f tl <*> f x <*> traverse f tr
+    traverse _ Leaf = pure Leaf
+\end{code}
+
+\textsc{Exercise 5:} Using foldMap, define a generic version of the higher-order function \texttt{filter} on lists that can be used with any foldable type:
+
+\begin{code}
+filterF :: Foldable t => (a -> Bool) -> t a -> [a]
+filterF p = foldMap (\x -> [x | p x])
+\end{code}
+
 \end{document}
