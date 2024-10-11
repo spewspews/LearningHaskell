@@ -39,4 +39,4 @@ maxCombAnd' xs = runST $ do
     V.maximum <$> V.unsafeFreeze v
   where
     addBits v x = zipWithM_ (addBit v) [0 .. 31] (bitList x)
-    addBit v i b = MV.modify v (+ b) i
+    addBit v i b = MV.unsafeModify v (+ b) i
