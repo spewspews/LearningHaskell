@@ -2,9 +2,12 @@
 -- With Bitwise AND Greater Than Zero from LeetCode:
 -- https://leetcode.com/problems/largest-combination-with-bitwise-and-greater-than-zero/description/
 
+import Control.Monad (zipWithM_)
+import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.List (foldl', sortBy)
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 
 pow :: [a] -> [[a]]
 pow [] = [[]]
@@ -28,3 +31,12 @@ maxCombAnd :: [Int] -> Int
 maxCombAnd = V.maximum . foldl' addBits (V.replicate 32 0)
   where
     addBits v = V.unsafeAccum (+) v . zip [0 .. 31] . bitList
+
+maxCombAnd' :: [Int] -> Int
+maxCombAnd' xs = runST $ do
+    v <- MV.replicate 32 0
+    mapM_ (addBits v) xs
+    V.maximum <$> V.unsafeFreeze v
+  where
+    addBits v x = zipWithM_ (addBit v) [0 .. 31] (bitList x)
+    addBit v i b = MV.modify v (+ b) i
