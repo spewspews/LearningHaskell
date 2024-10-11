@@ -25,9 +25,16 @@ This is just the preamble, a few imports:
 \begin{code}
 {-# LANGUAGE LambdaCase #-}
 
-import Control.Applicative
+import Control.Applicative (Alternative (..))
 import Control.Monad (void)
-import Data.Char
+import Data.Char (
+  isAlpha,
+  isAlphaNum,
+  isDigit,
+  isLower,
+  isSpace,
+  isUpper,
+ )
 import System.IO (hSetEcho, stdin)
 \end{code}
 
@@ -490,7 +497,7 @@ factor' :: Parser Factor
 factor' = E <$> (symbol "(" *> expr' <* symbol ")") <|> N <$> natural
 \end{code}
 
-\textsc{Exercise 6}\quad Extend the parser expr :: Parser Int to support subtraction and division,and to use integer values rather than natural numbers, based upon the following revisions to the grammar:
+\textsc{Exercise 6}\quad Extend the parser \verb-expr :: Parser Int- to support subtraction and division, and to use integer values rather than natural numbers, based upon the following revisions to the grammar:
 
 \begin{grammar}
 <expr> ::= <term> (`+' <expr> | `-' <expr> | <empty>)
@@ -529,5 +536,67 @@ termI = do
 factorI :: Parser Int
 factorI = symbol "(" *> exprI <* symbol ")" <|> integer
 \end{code}
+
+\textsc{Exercise 7}\quad Further extend the grammar and parser for arithmetic expressions to support exponentiation \verb-^-, which is assumed to associate to the right and have higher priority than multiplication and division, but lower priority than parentheses and numbers. For example, \verb-2^3*4- means \verb-(2^3)*4-. Hint: the new level of priority requires a new rule in the grammar.
+
+\begin{code}
+exprE :: Parser Int
+exprE = do
+    t <- termE
+    do
+        op <- symbol "+" <|> symbol "-"
+        e <- exprE
+        case op of
+            "+" -> return $ t + e
+            "-" -> return $ t - e
+        <|> return t
+
+termE :: Parser Int
+termE = do
+    f <- factorE
+    do
+        op <- symbol "*" <|> symbol "/"
+        t <- termE
+        case op of
+            "*" -> return $ f * t
+            "/" -> return $ f `div` t
+        <|> return f
+
+factorE :: Parser Int
+factorE = (^) <$> baseE <*> (symbol "^" *> powerE <|> one)
+
+baseE :: Parser Int
+baseE = symbol "(" *> exprE <* symbol ")" <|> integer
+
+powerE :: Parser Int
+powerE = baseE
+\end{code}
+
+\textsc{Exercise 8}\quad Consider expressions built up from natural numbers using a subtraction operator that is assumed to associate to the left.
+
+\begin{enumerate}
+\item Translate this description directly into a grammar.
+
+\begin{grammar}
+<expr> ::= <expr> (`-' <int> | <empty>)
+\end{grammar}
+
+\item Implement this grammar as a parser \verb-expr :: Parser Int-
+
+\begin{code}
+exprSub :: Parser Int
+exprSub = (-) <$> exprSub <*> (symbol "-" *> natural) <|> zero
+\end{code}
+
+\item What is the problem with this parser?
+
+\textsc{Answer:} It never terminates.
+\item Show how it can be fixed. Hint: rewrite the parser using the repetition primitive \verb-many- and the library function \verb-foldl-.
+
+\begin{code}
+exprSub' :: Parser Int
+exprSub' = foldl (-) <$> natural <*> many (symbol "-" *> natural)
+\end{code}
+\end{enumerate}
 
 \end{document}
