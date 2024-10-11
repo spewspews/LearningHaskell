@@ -390,5 +390,21 @@ leaves-nodes (Node tₗ tᵣ) =
 
 \noindent
 \textsc{Exercise 7.} Verify the functor laws for the \texttt{Maybe} type. Hint: the proofs proceed by case analysis, and do not require the use of induction.
+
+\begin{code}
+open import Haskell.Law.Functor.Def using (IsLawfulFunctor; identity; composition)
+open import Haskell.Prim.Maybe using (Maybe)
+
+instance
+  ILawfulFunctorMaybe : IsLawfulFunctor Maybe
+  identity ⦃ ILawfulFunctorMaybe ⦄ Nothing = refl
+  identity ⦃ ILawfulFunctorMaybe ⦄ (Just x) = refl
+  composition ⦃ ILawfulFunctorMaybe ⦄ Nothing f g = refl
+  composition ⦃ ILawfulFunctorMaybe ⦄ (Just x) f g = refl
+\end{code}
+
+\noindent
+\textsc{Exercise 8.} Given the instance declaration below, verify the functor laws for the \texttt{Tree} type, by induction on trees.
+
 \end{document}
   
