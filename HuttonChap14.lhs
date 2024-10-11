@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage[paperwidth=5.5in,paperheight=8.5in,margin=0.5in,top=.6in,bottom=.6in]{geometry}
+\usepackage[paperwidth=5.5in,paperheight=8.5in,margin=0.5in,footskip=.25in]{geometry}
 \usepackage{fontspec}
 \usepackage{unicode-math}
 \usepackage{fancyvrb}
@@ -26,7 +26,6 @@ import Data.Foldable (Foldable (..))
 \end{code}
 
 \textsc{Exercise 1}: Complete the following instance declaration from \texttt{Data.Monoid} to make a pair type into a monoid provided the two component types are monoids:
-\vspace{5pt}
 
 \begin{code}
 data Pair a b = Pair a b
