@@ -13,7 +13,7 @@ pow (x : xs) = map (x :) powxs ++ powxs
     powxs = pow xs
 
 maxCombAndSlow :: [Int] -> Int
-maxCombAnd a =
+maxCombAndSlow a =
   fst $
     head $
       filter (\(_, v) -> v /= 0) $
@@ -26,6 +26,6 @@ bitList 0 = []
 bitList i = i `mod` 2 : bitList (i `div` 2)
 
 maxCombAnd :: [Int] -> Int
-maxCombAndFast xs = V.maximum $ foldl' addBits (V.replicate 32 0) xs
+maxCombAnd xs = V.maximum $ foldl' addBits (V.replicate 32 0) xs
   where
     addBits v x = V.unsafeAccum (+) v $ zip [0 .. 31] $ bitList x
