@@ -18,6 +18,7 @@ flatten (Leaf x) = [x]
 flatten (Node l x r) = flatten l ++ [x] ++ flatten r
 
 instance (Eq a) => Eq (Tree a) where
+    (==) :: Eq a => Tree a -> Tree a -> Bool
     Leaf x == Leaf y = x == y
     Node l x r == Node l' x' r' = l == l' && x == x' && r == r'
     _ == _ = False
