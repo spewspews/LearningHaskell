@@ -1,3 +1,5 @@
+import Control.Monad (join)
+
 data Op = Add | Sub | Mul | Div
 
 instance Show Op where
@@ -11,11 +13,14 @@ valid Sub x y = x > y
 valid Div x y = x `mod` y == 0
 valid _ _ _ = True
 
-apply :: Op -> Int -> Int -> Int
-apply Add x y = x + y
-apply Sub x y = x - y
-apply Mul x y = x * y
-apply Div x y = x `div` y
+apply :: Op -> Int -> Int -> Maybe Int
+apply op x y = if valid op x y then return (o x y) else Nothing
+  where
+    o = case op of
+      Add -> (+)
+      Sub -> (-)
+      Mul -> (*)
+      Div -> div
 
 data Expr = Val Int | App Op Expr Expr
 
@@ -31,12 +36,5 @@ values (Val i) = [i]
 values (App _ x y) = values x ++ values y
 
 eval :: Expr -> Maybe Int
-eval (Val i)
-  | i > 0 = Just i
-  | otherwise = Nothing
-eval (App o x y) = case valid o <$> ex <*> ey of
-  Just True -> apply o <$> ex <*> ey
-  _ -> Nothing
-  where
-    ex = eval x
-    ey = eval y
+eval (Val i) = if i > 0 then return i else Nothing
+eval (App o x y) = join $ apply o <$> eval x <*> eval y
