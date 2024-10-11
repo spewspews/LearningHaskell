@@ -35,6 +35,7 @@ instance Applicative Pair where
     pure x = P (x, x)
     P (f, g) <*> P (x, y) = P (f x, g y)
 
+{-
 data Expr = Val Int | Div Expr Expr
 
 eval :: Expr -> Maybe Int
@@ -48,7 +49,9 @@ eval (Div x y) = case eval x of
 safediv :: Int -> Int -> Maybe Int
 safediv _ 0 = Nothing
 safediv n m = Just (n `div` m)
+-}
 
+{-
 type State = Int
 
 newtype ST a = S {app :: State -> (a, State)}
@@ -93,6 +96,7 @@ instance Applicative ST' where
 instance Monad ST where
     -- (>>=) :: ST a -> (a -> ST b) -> ST b
     stx >>= f = S (\s -> let (x, s') = app stx s in app (f x) s')
+-}
 
 run :: ST a -> State -> a
 run m = fst . app m
@@ -158,7 +162,7 @@ instance Applicative (Hom a) where
     pure = Hom . const
 
     -- <*> :: Hom a (b -> c) -> Hom a b -> Hom a c
-    -- <*> :: (a -> b -> c) -> (a -> b) -> (a -> c)
+    -- <*> :: (a -> b -> c) -> (a -> b) -> a -> c
     Hom f <*> Hom x = Hom $ \y -> f y $ x y
 
 -- Exercise 4
@@ -174,3 +178,84 @@ instance Applicative ZipList where
 
     -- <*> :: ZipList (a -> b) -> ZipList a -> ZipList b
     Z fs <*> Z xs = Z $ zipWith ($) fs xs
+
+-- Exercise 5
+-- pure id <*> x = x
+--   x :: Applicative f => f a
+--   id :: a -> a
+--   pure id :: Applicative f => f (a -> a)
+--   pure id <*> x :: Applicative f => f a
+-- pure (g x) = pure g <*> pure x
+--   g :: a -> b
+--   x :: a
+--   pure (g x) = pure g <*> pure x :: Applicative f => f b
+-- x <*> pure y = pure (\x -> x y) <*> x
+--   x :: Applicative f => f (a -> b)
+--   y :: a
+--   x <*> pure y :: Applicative f b
+-- x <*> (y <*> z) = pure (.) <*> x <*> y <*> z
+--   x :: Applicative f => f (b -> c)
+--   y :: Applicative f => f (a -> b)
+--   z :: Applicative f => f a
+--   y <*> z :: Applicative f => f b
+--   pure (.) :: Applicative f => f ((b -> c) -> (a -> b) -> a -> c)
+
+-- Exercise 6
+instance Monad (Hom a) where
+    -- (>>=) :: Hom a b -> (b -> Hom a c) -> Hom a c
+    -- (>>=) :: (a -> b) -> (b -> a -> c) -> a -> c
+    Hom x >>= f = Hom $ \y -> let Hom f' = f $ x y in f' y
+
+-- Exercise 7
+data Expr a = Var a | Val Int | Add (Expr a) (Expr a) deriving (Show)
+
+instance Functor Expr where
+    -- fmap :: (a -> b) -> Expr a -> Expr b
+    fmap f (Var x) = Var $ f x
+    fmap f (Add l r) = Add (fmap f l) (fmap f r)
+    fmap _ (Val x) = Val x
+
+instance Applicative Expr where
+    -- pure :: a -> Expr a
+    pure = Var
+
+    -- <*> :: Expr (a -> b) -> Expr a -> Expr b
+    Var f <*> Var x = Var $ f x
+    Var f <*> Val x = Val x
+    Val x <*> Val y = Val y
+    Val x <*> Var y = Val x
+    Add fl fr <*> x = Add (fl <*> x) (fr <*> x)
+    f <*> Add l r = Add (f <*> l) (f <*> r)
+
+instance Monad Expr where
+    -- >>= :: Expr a -> (a -> Expr b) -> Expr b
+    Var x >>= f = f x
+    Val x >>= f = Val x
+    Add l r >>= f = do
+        l' <- l
+        r' <- r
+        Add (f l') (f r')
+
+-- Exercise 8
+type State = Int
+
+newtype ST a = S {app :: State -> (a, State)}
+
+instance Functor ST where
+    -- fmap :: (a -> b) -> ST a -> ST b
+    fmap f stx = do
+        x <- stx
+        return $ f x
+
+instance Applicative ST where
+    -- pure :: a -> ST a
+    pure x = S (x,)
+
+    -- <*> :: ST (a -> b) -> ST a -> ST b
+    stf <*> stx = do
+        f <- stf
+        f <$> stx
+
+instance Monad ST where
+    -- (>>=) :: ST a -> (a -> ST b) -> ST b
+    S x >>= f = S $ \s -> let (x', s') = x s in app (f x') s'
