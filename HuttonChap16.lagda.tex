@@ -27,7 +27,8 @@ module HuttonChap16 where
 open import Haskell.Prelude
 open import Haskell.Law.Equality using (sym; begin_; _≡⟨⟩_; step-≡; _∎; cong)
 open import Haskell.Law.Eq.Def using (IsLawfulEq; eqReflexivity)
-open import Haskell.Law.Num.Def using (+-assoc)
+open import Haskell.Law.Num.Def using (+-assoc; +-comm)
+open import Haskell.Law.Num.Int using (iLawfulNumInt)
 \end{code}
 
 \noindent
@@ -361,35 +362,33 @@ nLeaves (Node tₗ tᵣ) = nLeaves tₗ + nLeaves tᵣ
 
 nNodes : {a : Set} → Tree a → Int
 nNodes (Leaf x) = 0
-nNodes (Node tₗ tᵣ) = nNodes tₗ + nNodes tᵣ + 1
+nNodes (Node tₗ tᵣ) = 1 + nNodes tₗ + nNodes tᵣ
 {-# COMPILE AGDA2HS nNodes #-}
 
 leaves-nodes : {a : Set} → (t : Tree a)
-    → nLeaves t ≡ nNodes t + 1
-leaves-nodes (Leaf x) =
-  begin
-    nLeaves (Leaf x)
-  ≡⟨⟩
-    1
-  ≡⟨⟩
-    0 + 1
-  ≡⟨⟩
-    nNodes (Leaf x) + 1
-  ∎
+    → nLeaves t ≡ 1 + nNodes t
+leaves-nodes (Leaf x) = refl
 leaves-nodes (Node tₗ tᵣ) =
   begin
     nLeaves (Node tₗ tᵣ)
   ≡⟨⟩
     nLeaves tₗ + nLeaves tᵣ
-  ≡⟨ cong (_+ nLeaves tᵣ) (leaves-nodes tₗ) ⟩
-    nNodes tₗ + 1 + nLeaves tᵣ
-  ≡⟨ cong ((nNodes tₗ + 1) +_) (leaves-nodes tᵣ) ⟩
-    nNodes tₗ + 1 + (nNodes tᵣ + 1)
-  ≡⟨ {!   !} ⟩
-    (nNodes tₗ + 1 + nNodes tᵣ) + 1
-  ≡⟨ {!   !} ⟩
-    nNodes (Node tₗ tᵣ) + 1
+  ≡⟨ cong (_+ (nLeaves tᵣ)) (leaves-nodes tₗ) ⟩
+    1 + nNodes tₗ + nLeaves tᵣ
+  ≡⟨ cong ((1 + nNodes tₗ) +_) (leaves-nodes tᵣ) ⟩
+    1 + nNodes tₗ + (1 + nNodes tᵣ)
+  ≡⟨ +-assoc 1 (nNodes tₗ) (1 + nNodes tᵣ) ⟩
+    1 + (nNodes tₗ + (1 + nNodes tᵣ))
+  ≡⟨ cong (1 +_) (sym (+-assoc (nNodes tₗ) 1 (nNodes tᵣ))) ⟩
+    1 + (nNodes tₗ + 1 + nNodes tᵣ)
+  ≡⟨ cong (1 +_) (cong (_+ nNodes tᵣ) (+-comm (nNodes tₗ) 1)) ⟩
+    1 + (1 + nNodes tₗ + nNodes tᵣ)
+  ≡⟨⟩
+    1 + nNodes (Node tₗ tᵣ)
   ∎
 \end{code}
+
+\noindent
+\textsc{Exercise 7.} Verify the functor laws for the \texttt{Maybe} type. Hint: the proofs proceed by case analysis, and do not require the use of induction.
 \end{document}
   
