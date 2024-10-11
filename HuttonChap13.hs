@@ -89,3 +89,34 @@ space = void $ many $ sat isSpace
 
 int :: Parser Int
 int = (\_ n -> -n) <$> char '-' <*> nat <|> nat
+
+token :: Parser a -> Parser a
+token p = (\_ p _ -> p) <$> space <*> p <*> space
+
+identifier :: Parser String
+identifier = token ident
+
+natural :: Parser Int
+natural = token nat
+
+integer :: Parser Int
+integer = token int
+
+symbol :: String -> Parser String
+symbol s = token $ string s
+
+nats :: Parser [Int]
+{-
+nats = do
+    symbol "["
+    n <- natural
+    ns <- many $ (\_ n -> n) <$> symbol "," <*> natural
+    symbol "]"
+    return $ n : ns
+-}
+nats =
+    (\_ n ns _ -> n : ns)
+        <$> symbol "["
+        <*> natural
+        <*> many ((\_ n -> n) <$> symbol "," <*> natural)
+        <*> symbol "]"
