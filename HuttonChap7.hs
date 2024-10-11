@@ -1,4 +1,5 @@
 import Data.Char
+import Data.List (sort)
 
 {-
 twice :: (a -> a) -> a -> a
@@ -66,3 +67,78 @@ transmit = decode . channel . encode
 
 channel :: [Bit] -> [Bit]
 channel = id
+
+-- Voting Algorithms
+
+votes :: [String]
+votes = ["Red", "Blue", "Green", "Blue", "Blue", "Red"]
+
+count :: (Eq a) => a -> [a] -> Int
+count x = length . filter (== x)
+
+rmdups :: (Eq a) => [a] -> [a]
+rmdups [] = []
+rmdups (x : xs) = x : rmdups (filter (/= x) xs)
+
+result :: (Ord a) => [a] -> [(Int, a)]
+result vs = sort [(count v vs, v) | v <- rmdups vs]
+
+winner :: (Ord a) => [a] -> a
+winner = snd . last . result
+
+ballots :: [[String]]
+ballots =
+  [ ["Red", "Green"],
+    ["Blue"],
+    ["Green", "Red", "Blue"],
+    ["Blue", "Green", "Red"],
+    ["Green"]
+  ]
+
+rmempty :: [[a]] -> [[a]]
+rmempty = filter (not . null)
+
+elim :: (Eq a) => a -> [[a]] -> [[a]]
+elim x = map (filter (/= x))
+
+rank :: (Ord a) => [[a]] -> [a]
+rank = map snd . result . map head . rmempty
+
+winner' :: (Ord a) => [[a]] -> a
+winner' bs = case rank bs of
+  [w] -> w
+  c : _ -> winner' $ elim c bs
+
+-- Exercise 1
+filterMap :: (a -> Bool) -> (a -> b) -> [a] -> [b]
+filterMap p f = map f . filter p
+
+-- Exercise 2.
+-- a.
+all' :: (a -> Bool) -> [a] -> Bool
+all' p = and . map p
+
+-- b.
+any' :: (a -> Bool) -> [a] -> Bool
+any' p = or . map p
+
+-- c.
+takeWhile' :: (a -> Bool) -> [a] -> [a]
+takeWhile' p [] = []
+takeWhile' p (x : xs)
+  | p x = x : takeWhile' p xs
+  | otherwise = []
+
+-- d.
+dropWhile' :: (a -> Bool) -> [a] -> [a]
+dropWhile' p [] = []
+dropWhile' p v@(x : xs)
+  | p x = dropWhile' p xs
+  | otherwise = v
+
+-- Exercise 3.
+map' :: (a -> b) -> [a] -> [b]
+map' f = foldr ((:) . f) []
+
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' p = foldr (\x -> if p x then (x :) else id) []
