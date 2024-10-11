@@ -250,24 +250,10 @@ readLine = go ""
                 putChar '\n'
                 return $ reverse s
             '\DEL' -> case s of
-                "" -> go []
+                "" -> go ""
                 (x : xs) -> do
                     putChar '\b'
                     go xs
             _ -> do
                 putChar c
                 go (c : s)
-
-{-
-readLine = do
-    c <- getCh
-    case c of
-        '\n' -> return []
-        '\DEL' -> do
-            putChar '\b'
-            readLine
-        _ -> do
-            putChar c
-            s <- readLine
-            return (c : s)
--}
