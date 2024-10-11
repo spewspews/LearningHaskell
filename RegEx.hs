@@ -37,22 +37,20 @@ data State = State {s :: IntSet, ops :: [Int]} deriving (Show)
 empty :: State
 empty = State mempty []
 
-cons :: Int -> State -> State
-cons i ul@(State s l) =
+add :: Int -> State -> State
+add i ul@(State s l) =
   if member i s then ul else State (insert i s) (i : l)
 
-infixr 5 `cons`
-
 match :: Regex -> String -> Bool
-match r s = go (0 `cons` empty) empty $ s ++ ['\NUL']
+match r s = go (add 0 empty) empty $ s ++ ['\NUL']
   where
-    go State {ops = []} next (_ : cs) = go (0 `cons` next) empty cs
+    go State {ops = []} next (_ : cs) = go (add 0 next) empty cs
     go cur@State {ops = op : ops} next s@(c : _) = case r ! op of
-      DOT -> go cur {ops} (op + 1 `cons` next) s
+      DOT -> go cur {ops} (add (op + 1) next) s
       CHAR c' ->
         if c == c'
-          then go cur {ops} (op + 1 `cons` next) s
+          then go cur {ops} (add (op + 1) next) s
           else go cur {ops} next s
-      FORK j k -> go (op + j `cons` op + k `cons` cur {ops}) next s
+      FORK j k -> go (add (op + j)  $ add (op + k) cur {ops}) next s
       END -> True
     go _ _ "" = False
