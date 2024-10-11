@@ -223,9 +223,7 @@ instance Applicative Expr where
     Var f <*> Var x = Var $ f x
     Var f <*> Val i = Val i
     Var f <*> Add l r = Add (f <$> l) (f <$> r)
-    Val i <*> Var x = Val i
-    Val fi <*> Val i = Val i
-    Val i <*> Add l r = Val i
+    Val i <*> _ = Val i
     Add fl fr <*> Var x = Add (fl <*> Var x) (fr <*> Var x)
     Add fl fr <*> Val i = Val i
     Add fl fr <*> Add l r = Add (fl <*> l) (fr <*> r)
