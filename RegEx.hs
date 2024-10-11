@@ -12,17 +12,17 @@ type Regex = Vector Op
 parse :: String -> Regex
 parse = fromList . reverse . (END :) . fst . go [[]]
   where
-    go ops "" = (concat ops, "")
+    go opss "" = (concat opss, "")
     go (prevOps : opss) (c : cs) = case c of
       '.' -> go ([DOT] : prevOps : opss) cs
       '*' -> go (([FORK (-l) 1] ++ prevOps ++ [FORK 1 (l + 2)]) : opss) cs
       '+' -> go ([FORK (-l) 1] : prevOps : opss) cs
       '?' -> go ((prevOps ++ [FORK 1 (l + 1)]) : opss) cs
-      '(' -> case s' of
-        (')' : cs') -> go (ops' : prevOps : opss) cs'
+      '(' -> case s of
+        (')' : cs) -> go (ops : prevOps : opss) cs
         _ -> error "Bad Regular Expression"
         where
-          (ops', s') = go [[]] cs
+          (ops, s) = go [[]] cs
       ')' -> (concat (prevOps : opss), c : cs)
       c -> go ([CHAR c] : prevOps : opss) cs
       where
