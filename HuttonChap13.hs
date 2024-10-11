@@ -57,3 +57,9 @@ digit = sat isDigit
 
 lower :: Parser Char
 lower = sat isLower
+
+upper :: Parser Char
+upper = sat isUpper
+
+letter :: Parser Char
+letter = sat isAlpha
