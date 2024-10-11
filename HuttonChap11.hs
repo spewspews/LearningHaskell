@@ -128,7 +128,7 @@ moves :: Grid -> Player -> [Grid]
 moves g p
     | won g = []
     | full g = []
-    | otherwise = mapMaybe (\i -> move g i p) [1 .. size ^ 2 - 1]
+    | otherwise = mapMaybe (\i -> move g i p) [0 .. size ^ 2 - 1]
 
 prune :: Int -> Tree a -> Tree a
 prune 0 (Node x _) = Node x []
@@ -163,8 +163,6 @@ main = do
 main = do
     putStr "Nodes: "
     print $ foldl' (\i _ -> i + 1) 0 gt
-    putStr "Nodes: "
-    print $ nodes gt
     putStr "Depth: "
     print $ treeDepth gt
   where
@@ -193,9 +191,6 @@ play' g p
         putStr "Player X is thinking... "
         (play $! bestmove g p) (next p)
 
-nodes :: Tree a -> Int
-nodes (Node _ ts) = 1 + sum (map nodes ts)
-
 treeDepth :: Tree a -> Int
-treeDepth (Node _ []) = 1
+treeDepth (Node _ []) = 0
 treeDepth (Node _ ts) = 1 + maximum (map treeDepth ts)
