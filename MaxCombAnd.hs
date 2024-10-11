@@ -30,7 +30,7 @@ bitList = map (`mod` 2) . takeWhile (> 0) . iterate (`div` 2)
 maxCombAnd :: [Int] -> Int
 maxCombAnd = V.maximum . foldl' addBits (V.replicate 32 0)
   where
-    addBits v = V.unsafeAccum (+) v . zip [0 .. 31] . bitList
+    addBits v x = V.unsafeAccum (+) v $ zip [0 .. 31] (bitList x)
 
 maxCombAnd' :: [Int] -> Int
 maxCombAnd' xs = runST $ do
@@ -38,5 +38,5 @@ maxCombAnd' xs = runST $ do
     mapM_ (addBits v) xs
     V.maximum <$> V.unsafeFreeze v
   where
-    addBits v x = zipWithM_ (addBit v) [0 .. 31] (bitList x)
-    addBit v i b = MV.unsafeModify v (+ b) i
+    addBits v x =
+        zipWithM_ (\i b -> MV.unsafeModify v (+ b) i) [0 .. 31] (bitList x)
