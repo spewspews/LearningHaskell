@@ -1,7 +1,8 @@
 import Data.Char
 import Data.List
-import Data.Maybe (fromJust, mapMaybe)
+import Data.Maybe (mapMaybe)
 import System.IO
+import System.Random.Stateful (globalStdGen, uniformRM)
 
 size :: Int
 size = 3
@@ -121,13 +122,15 @@ prompt p = "Player " ++ show p ++ ", enter your move: "
 
 data Tree a = Node a [Tree a] deriving (Show, Foldable)
 
-gametree :: Grid -> Player -> Tree Grid
-gametree g p = Node g [gametree g' (next p) | g' <- moves g p]
+gametree :: Grid -> Player -> Tree (Grid, Player)
+gametree g p = Node (g, p) [gametree g' (next p) | g' <- moves g p]
+
+getChild :: Tree (Grid, Player) -> Grid -> Tree (Grid, Player)
+getChild (Node _ ts) g = head $ filter (\(Node (g', _) _) -> g' == g) ts
 
 moves :: Grid -> Player -> [Grid]
 moves g p
     | won g = []
-    | full g = []
     | otherwise = mapMaybe (\i -> move g i p) [0 .. size ^ 2 - 1]
 
 prune :: Int -> Tree a -> Tree a
@@ -137,60 +140,77 @@ prune n (Node x ts) = Node x $ map (prune (n - 1)) ts
 depth :: Int
 depth = 9
 
-minimax :: Tree Grid -> Tree (Grid, Player)
-minimax (Node g [])
+minimax :: Tree (Grid, Player) -> Tree (Grid, Player)
+minimax (Node (g, _) [])
     | wins O g = Node (g, O) []
     | wins X g = Node (g, X) []
     | otherwise = Node (g, B) []
-minimax (Node g ts)
-    | turn g == O = Node (g, minimum ps) ts'
-    | turn g == X = Node (g, maximum ps) ts'
+minimax (Node (g, p) ts)
+    | p == O = Node (g, minimum ps) ts'
+    | p == X = Node (g, maximum ps) ts'
   where
     ts' = map minimax ts
     ps = map (\(Node (_, p) _) -> p) ts'
 
-bestmove :: Grid -> Player -> Grid
-bestmove g p = head [g' | Node (g', p') _ <- ts, p' == best]
-  where
-    Node (_, best) ts = minimax $ prune depth $ gametree g p
+bestmoves :: Tree (Grid, Player) -> Player -> [Tree (Grid, Player)]
+bestmoves (Node (g, best) ts) p = filter (\(Node (_, p') _) -> p' == best) ts
+
+maxDepth :: Tree a -> Int
+maxDepth (Node _ []) = 0
+maxDepth (Node _ ts) = 1 + maximum (map maxDepth ts)
+
+minDepth :: Tree a -> Int
+minDepth (Node _ []) = 0
+minDepth (Node _ ts) = 1 + minimum (map minDepth ts)
+
+getRandom :: [a] -> IO a
+getRandom l = do
+    x <- uniformRM (0, length l - 1) globalStdGen
+    return $ l !! x
+
+randomMove :: Grid -> Player -> IO Grid
+randomMove g p = do
+    i <- uniformRM (0, size ^ 2 - 1) globalStdGen
+    case move g i p of
+        Just g -> return g
+        Nothing -> randomMove g p
 
 main :: IO ()
 {-
 main = do
-    hSetBuffering stdout NoBuffering
-    play empty O
--}
-main = do
     putStr "Nodes: "
     print $ length gt
     putStr "Depth: "
-    print $ treeDepth gt
+    print $ maxDepth gt
   where
     gt = gametree empty O
+-}
+main = do
+    hSetBuffering stdout NoBuffering
+    putStr "Go first? [yn]: "
+    s <- getLine
+    if s == "y" then play (minimax $ gametree empty O) O else play (minimax $ gametree empty X) X
 
-play :: Grid -> Player -> IO ()
-play g p = do
+play :: Tree (Grid, Player) -> Player -> IO ()
+play gt@(Node (g, _) _) p = do
     cls
     goto (1, 1)
     putGrid g
-    play' g p
+    play' gt p
 
-play' :: Grid -> Player -> IO ()
-play' g p
+play' :: Tree (Grid, Player) -> Player -> IO ()
+play' gt@(Node (g, _) _) p
     | wins O g = putStrLn "Player O Wins!\n"
     | wins X g = putStrLn "Player X Wins!\n"
     | full g = putStrLn "It's a draw!\n"
     | p == O = do
         i <- getNat (prompt p)
         case move g i p of
-            Just g' -> play g' (next p)
+            Just g' -> play (getChild gt g') (next p)
             Nothing -> do
                 putStrLn "ERROR: Invalid move"
-                play' g p
+                play' gt p
     | p == X = do
         putStr "Player X is thinking... "
-        (play $! bestmove g p) (next p)
-
-treeDepth :: Tree a -> Int
-treeDepth (Node _ []) = 0
-treeDepth (Node _ ts) = 1 + maximum (map treeDepth ts)
+        g' <- getRandom $ bestmoves gt p
+        play g' (next p)
