@@ -9,28 +9,28 @@ occurs x (Node l y r) = x == y || occurs x l || occurs x r
 occursS :: (Ord a) => a -> Tree a -> Bool
 occursS x (Leaf y) = x == y
 occursS x (Node l y r)
-  | x == y = True
-  | x < y = occursS x l
-  | x > y = occursS x r
+    | x == y = True
+    | x < y = occursS x l
+    | x > y = occursS x r
 
 flatten :: Tree a -> [a]
 flatten (Leaf x) = [x]
 flatten (Node l x r) = flatten l ++ [x] ++ flatten r
 
 instance (Eq a) => Eq (Tree a) where
-  Leaf x == Leaf y = x == y
-  Node l x r == Node l' x' r' = l == l' && x == x' && r == r'
-  _ == _ = False
+    Leaf x == Leaf y = x == y
+    Node l x r == Node l' x' r' = l == l' && x == x' && r == r'
+    _ == _ = False
 
 data Prop
-  = Const Bool
-  | Var Char
-  | Not Prop
-  | And Prop Prop
-  | Or Prop Prop
-  | Imply Prop Prop
-  | Equiv Prop Prop
-  deriving (Show, Ord, Eq, Read)
+    = Const Bool
+    | Var Char
+    | Not Prop
+    | And Prop Prop
+    | Or Prop Prop
+    | Imply Prop Prop
+    | Equiv Prop Prop
+    deriving (Show, Ord, Eq, Read)
 
 p1 :: Prop
 p1 = And (Var 'A') (Not $ Var 'A')
@@ -88,10 +88,10 @@ isTaut p = all (`evalP` p) $ substs p
 -- Abstract Machine
 
 data Expr
-  = Val Int
-  | Add Expr Expr
-  | Mult Expr Expr
-  deriving (Ord, Eq, Show, Read)
+    = Val Int
+    | Add Expr Expr
+    | Mult Expr Expr
+    deriving (Ord, Eq, Show, Read)
 
 value :: Expr -> Int
 value (Val x) = x
@@ -140,10 +140,10 @@ mult (Succ m) n = n `add` mult m n
 occursS' :: (Ord a) => a -> Tree a -> Bool
 occursS' x (Leaf y) = x == y
 occursS' x (Node l y r) =
-  case compare x y of
-    EQ -> True
-    LT -> occursS' x l
-    GT -> occursS' x r
+    case compare x y of
+        EQ -> True
+        LT -> occursS' x l
+        GT -> occursS' x r
 
 -- Exercise 3
 data Tree' a = Leaf' a | Node' (Tree' a) (Tree' a) deriving (Show)

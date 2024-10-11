@@ -14,12 +14,12 @@ pow (x : xs) = map (x :) powxs ++ powxs
 
 maxCombAndSlow :: [Int] -> Int
 maxCombAndSlow =
-  fst
-    . head
-    . filter (\(_, v) -> v /= 0)
-    . map (\xs -> (length xs, foldl' (.&.) maxBound xs))
-    . sortBy (\xs ys -> compare (length ys) (length xs))
-    . pow
+    fst
+        . head
+        . filter (\(_, v) -> v /= 0)
+        . map (\xs -> (length xs, foldl' (.&.) maxBound xs))
+        . sortBy (\xs ys -> compare (length ys) (length xs))
+        . pow
 
 bitList :: (Integral a) => a -> [a]
 bitList = map (`mod` 2) . takeWhile (> 0) . iterate (`div` 2)

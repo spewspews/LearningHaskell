@@ -67,7 +67,7 @@ chop c xs = take c xs : chop c (drop c xs)
 checkParity :: [Bit] -> [Bit]
 checkParity [] = error "No parity bit"
 checkParity (b : bs) =
-  if sum bs `mod` 2 == b then bs else error "Wrong parity bit"
+    if sum bs `mod` 2 == b then bs else error "Wrong parity bit"
 
 decode :: [Bit] -> String
 decode = map (chr . bin2int . checkParity) . chop 9
@@ -105,12 +105,12 @@ winner = snd . last . result
 
 ballots :: [[String]]
 ballots =
-  [ ["Red", "Green"],
-    ["Blue"],
-    ["Green", "Red", "Blue"],
-    ["Blue", "Green", "Red"],
-    ["Green"]
-  ]
+    [ ["Red", "Green"]
+    , ["Blue"]
+    , ["Green", "Red", "Blue"]
+    , ["Blue", "Green", "Red"]
+    , ["Green"]
+    ]
 
 rmempty :: [[a]] -> [[a]]
 rmempty = filter (not . null)
@@ -123,8 +123,8 @@ rank = map snd . result . map head . rmempty
 
 winner' :: (Ord a) => [[a]] -> a
 winner' bs = case rank bs of
-  [w] -> w
-  c : _ -> winner' $ elim c bs
+    [w] -> w
+    c : _ -> winner' $ elim c bs
 
 -- Exercise 1
 filterMap :: (a -> Bool) -> (a -> b) -> [a] -> [b]
@@ -143,15 +143,15 @@ any' p = or . map p
 takeWhile' :: (a -> Bool) -> [a] -> [a]
 takeWhile' p [] = []
 takeWhile' p (x : xs)
-  | p x = x : takeWhile' p xs
-  | otherwise = []
+    | p x = x : takeWhile' p xs
+    | otherwise = []
 
 -- d.
 dropWhile' :: (a -> Bool) -> [a] -> [a]
 dropWhile' p [] = []
 dropWhile' p v@(x : xs)
-  | p x = dropWhile' p xs
-  | otherwise = v
+    | p x = dropWhile' p xs
+    | otherwise = v
 
 -- Exercise 3.
 map' :: (a -> b) -> [a] -> [b]
@@ -175,8 +175,8 @@ uncurry' f (a, b) = f a b
 -- unfold p h t = map h . takeWhile (not . p) . iterate t
 unfold :: (a -> Bool) -> (a -> b) -> (a -> a) -> a -> [b]
 unfold p h t x
-  | p x = []
-  | otherwise = h x : unfold p h t (t x)
+    | p x = []
+    | otherwise = h x : unfold p h t (t x)
 
 -- chop8' = map (take 8) . takeWhile (not . null) . iterate (drop 8)
 chop8' :: [Bit] -> [[Bit]]
@@ -199,8 +199,8 @@ altMap f g (x : xs) = f x : altMap g f xs
 -- Exercise 10
 luhnDouble :: Int -> Int
 luhnDouble x
-  | d > 9 = d - 9
-  | otherwise = d
+    | d > 9 = d - 9
+    | otherwise = d
   where
     d = 2 * x
 

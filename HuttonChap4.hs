@@ -1,11 +1,11 @@
 band b c
-  | b == c = b
-  | otherwise = False
+    | b == c = b
+    | otherwise = False
 
 bsignum n
-  | n < 0 = -1
-  | n == 0 = 0
-  | otherwise = 1
+    | n < 0 = -1
+    | n == 0 = 0
+    | otherwise = 1
 
 btest ('a' : _) = True
 btest _ = False
@@ -43,8 +43,8 @@ safetail1 xs = if null xs then xs else tail xs
 -- b.
 safetail2 :: [a] -> [a]
 safetail2 xs
-  | null xs = xs
-  | otherwise = tail xs
+    | null xs = xs
+    | otherwise = tail xs
 
 -- c.
 safetail3 :: [a] -> [a]
@@ -55,9 +55,9 @@ safetail3 (_ : xs) = xs
 
 -- Ex. 5
 myAnd a b =
-  if a
-    then if b then True else False
-    else False
+    if a
+        then if b then True else False
+        else False
 
 -- Ex. 6
 myAnd2 a b = if a then b else False
@@ -69,8 +69,8 @@ myMult = \x -> \y -> \z -> x * y * z
 -- Ex. 8
 luhnDouble :: Int -> Int
 luhnDouble x
-  | d > 9 = d - 9
-  | otherwise = d
+    | d > 9 = d - 9
+    | otherwise = d
   where
     d = x + x
 
@@ -83,7 +83,7 @@ luhn a b c d = s `mod` 10 == 0
 
 luhn2 :: Int -> Int -> Int -> Int -> Bool
 luhn2 a b c d =
-  let a' = luhnDouble a
-      c' = luhnDouble c
-      s = sum [a', b, c', d]
-   in s `mod` 10 == 0
+    let a' = luhnDouble a
+        c' = luhnDouble c
+        s = sum [a', b, c', d]
+     in s `mod` 10 == 0
