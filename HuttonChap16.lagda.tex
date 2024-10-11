@@ -392,19 +392,68 @@ leaves-nodes (Node tₗ tᵣ) =
 \textsc{Exercise 7.} Verify the functor laws for the \texttt{Maybe} type. Hint: the proofs proceed by case analysis, and do not require the use of induction.
 
 \begin{code}
-open import Haskell.Law.Functor.Def using (IsLawfulFunctor; identity; composition)
-open import Haskell.Prim.Maybe using (Maybe)
+open import Haskell.Law.Functor.Def
+  using (IsLawfulFunctor; identity; composition)
 
 instance
   ILawfulFunctorMaybe : IsLawfulFunctor Maybe
-  identity ⦃ ILawfulFunctorMaybe ⦄ Nothing = refl
-  identity ⦃ ILawfulFunctorMaybe ⦄ (Just x) = refl
-  composition ⦃ ILawfulFunctorMaybe ⦄ Nothing f g = refl
-  composition ⦃ ILawfulFunctorMaybe ⦄ (Just x) f g = refl
+  identity ⦃ ILawfulFunctorMaybe ⦄ Nothing =
+    begin
+      fmap id Nothing
+    ≡⟨⟩ -- Apply fmap
+      Nothing
+    ≡⟨⟩ -- Unapply id
+      id Nothing
+    ∎
+  identity ⦃ ILawfulFunctorMaybe ⦄ (Just x) =
+    begin
+      fmap id (Just x)
+    ≡⟨⟩ -- Apply fmap
+      Just (id x)
+    ≡⟨⟩ -- Apply id
+      Just x
+    ≡⟨⟩ -- Unapply id
+      id (Just x)
+    ∎
+  composition ⦃ ILawfulFunctorMaybe ⦄ Nothing f g =
+    begin
+      fmap (g ∘ f) Nothing
+    ≡⟨⟩ -- Apply fmap
+      Nothing
+    ≡⟨⟩ -- Unapply fmap
+      fmap g Nothing
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (fmap f Nothing)
+    ≡⟨⟩ -- Unapply ∘
+      (fmap g ∘ fmap f) Nothing
+    ∎
+  composition ⦃ ILawfulFunctorMaybe ⦄ (Just x) f g =
+    begin
+      fmap (g ∘ f) (Just x)
+    ≡⟨⟩ -- Apply fmap
+      Just ((g ∘ f) x)
+    ≡⟨⟩ -- Apply ∘
+      Just (g (f x))
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (Just (f x))
+    ≡⟨⟩ -- Unapply fmap
+      fmap g (fmap f (Just x))
+    ≡⟨⟩ -- Unapply ∘
+      (fmap g ∘ fmap f) (Just x)
+    ∎
 \end{code}
 
 \noindent
 \textsc{Exercise 8.} Given the instance declaration below, verify the functor laws for the \texttt{Tree} type, by induction on trees.
+
+\begin{code}
+instance
+  iFunctorTree : Functor Tree
+  fmap ⦃ iFunctorTree ⦄ f (Leaf x) = Leaf (f x)
+  fmap ⦃ iFunctorTree ⦄ f (Node tₗ tᵣ) = Node (fmap f tₗ) (fmap f tᵣ)
+  _<$_ ⦃ iFunctorTree ⦄ x t = fmap (λ b → x {{b}}) t
+  {-# COMPILE AGDA2HS iFunctorTree #-}
+\end{code}
 
 \end{document}
   
