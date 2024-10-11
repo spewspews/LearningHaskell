@@ -1,4 +1,8 @@
-import Control.Monad (join)
+import Control.Monad (guard, join, mapM)
+import Data.Maybe (mapMaybe)
+
+main :: IO ()
+main = print $ solutions' [1, 3, 7, 10, 25, 50] 765
 
 data Op = Add | Sub | Mul | Div
 
@@ -109,3 +113,30 @@ combine l r = map (\o -> App o l r) [Add, Sub, Mul, Div]
 
 solutions :: [Int] -> Int -> [Expr]
 solutions l n = concatMap (filter ((== Just n) . eval) . exprs) $ choices l
+
+type Result = (Expr, Int)
+
+results :: [Int] -> [Result]
+results [] = []
+results [x] | x > 0 = [(Val x, x)] | otherwise = []
+results xs = do
+    (ls, rs) <- split xs
+    lx <- results ls
+    rx <- results rs
+    combine' lx rx
+
+combine' :: Result -> Result -> [Result]
+combine' (l, x) (r, y) = mapMaybe f [Add, Sub, Mul, Div]
+  where
+    f o = do
+        v <- apply o x y
+        return (App o l r, v)
+
+solutions' :: [Int] -> Int -> [Expr]
+solutions' l n = do
+    cl <- choices l
+    (e, m) <- results cl
+    guard (m == n)
+    return e
+
+-- solutions' l n = map fst $ filter ((== n) . snd) $ concatMap results $ choices l
