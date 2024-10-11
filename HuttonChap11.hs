@@ -208,6 +208,37 @@ main = do
   where
     gt = gametree empty O
 -}
+{-
+main = do
+    hSetBuffering stdout NoBuffering
+    putStr "Go first? [yn]: "
+    s <- getLine
+    if s == "y" then play (minimax $ gametree empty O) O else play (minimax $ gametree empty X) X
+
+play :: Tree (Grid, Player) -> Player -> IO ()
+play gt@(Node (g, _) _) p = do
+    cls
+    goto (1, 1)
+    putGrid g
+    play' gt p
+
+play' :: Tree (Grid, Player) -> Player -> IO ()
+play' gt@(Node (g, _) _) p
+    | wins O g = putStrLn "Player O Wins!\n"
+    | wins X g = putStrLn "Player X Wins!\n"
+    | full g = putStrLn "It's a draw!\n"
+    | p == O = do
+        i <- getNat (prompt p)
+        case move g i p of
+            Just g -> play (getChild gt g) $ next p
+            Nothing -> do
+                putStrLn "ERROR: Invalid move"
+                play' gt $ next p
+    | p == X = do
+        putStr "Player X is thinking... "
+        let Node (g, _) _ = head $ bestmoves $ gt
+        play (getChild gt g) $ next p
+-}
 main = do
     hSetBuffering stdout NoBuffering
     putStr "Go first? [yn]: "
