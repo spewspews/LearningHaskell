@@ -151,17 +151,17 @@ instance Functor Tree' where
 newtype Hom a b = Hom (a -> b)
 
 instance Functor (Hom a) where
-    -- fmap :: (b -> c) -> Hom a b -> Hom a c
+    fmap :: (b -> c) -> Hom a b -> Hom a c
     -- fmap :: (b -> c) -> (a -> b) -> (a -> c)
     fmap f (Hom g) = Hom (f . g)
 
 -- Exercise 3
 instance Applicative (Hom a) where
-    -- pure :: b -> Hom a b
+    pure :: b -> Hom a b
     -- pure :: b -> a -> b
     pure = Hom . const
 
-    -- <*> :: Hom a (b -> c) -> Hom a b -> Hom a c
+    (<*>) :: Hom a (b -> c) -> Hom a b -> Hom a c
     -- <*> :: (a -> b -> c) -> (a -> b) -> a -> c
     Hom f <*> Hom x = Hom $ \y -> f y $ x y
 
@@ -173,10 +173,10 @@ instance Functor ZipList where
     fmap f (Z x) = Z $ map f x
 
 instance Applicative ZipList where
-    -- pure :: a -> ZipList a
+    pure :: a -> ZipList a
     pure = Z . repeat
 
-    -- <*> :: ZipList (a -> b) -> ZipList a -> ZipList b
+    (<*>) :: ZipList (a -> b) -> ZipList a -> ZipList b
     Z fs <*> Z xs = Z $ zipWith ($) fs xs
 
 -- Exercise 5
@@ -202,7 +202,7 @@ instance Applicative ZipList where
 
 -- Exercise 6
 instance Monad (Hom a) where
-    -- (>>=) :: Hom a b -> (b -> Hom a c) -> Hom a c
+    (>>=) :: Hom a b -> (b -> Hom a c) -> Hom a c
     -- (>>=) :: (a -> b) -> (b -> a -> c) -> a -> c
     Hom x >>= f = Hom $ \y -> let Hom f' = f $ x y in f' y
 
@@ -210,7 +210,7 @@ instance Monad (Hom a) where
 data Expr a = Var a | Val Int | Add (Expr a) (Expr a) deriving (Show)
 
 instance Functor Expr where
-    -- fmap :: (a -> b) -> Expr a -> Expr b
+    fmap :: (a -> b) -> Expr a -> Expr b
     fmap f (Var x) = Var $ f x
     fmap f (Add l r) = Add (fmap f l) (fmap f r)
     fmap _ (Val x) = Val x
