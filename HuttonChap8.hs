@@ -27,7 +27,9 @@ data Prop
   | Var Char
   | Not Prop
   | And Prop Prop
+  | Or Prop Prop
   | Imply Prop Prop
+  | Equiv Prop Prop
   deriving (Show, Ord, Eq, Read)
 
 p1 :: Prop
@@ -42,6 +44,9 @@ p3 = Imply (Var 'A') (And (Var 'A') (Var 'B'))
 p4 :: Prop
 p4 = Imply (And (Var 'A') (Imply (Var 'A') (Var 'B'))) (Var 'B')
 
+p5 :: Prop
+p5 = Or (Var 'A') (Not $ Var 'A')
+
 type Subst = Map Char Bool
 
 evalP :: Subst -> Prop -> Bool
@@ -49,14 +54,18 @@ evalP _ (Const b) = b
 evalP s (Var x) = s ! x
 evalP s (Not p) = not (evalP s p)
 evalP s (And p q) = evalP s p && evalP s q
+evalP s (Or p q) = evalP s p || evalP s q
 evalP s (Imply p q) = evalP s p <= evalP s q
+evalP s (Equiv p q) = evalP s p == evalP s q
 
 vars :: Prop -> [Char]
 vars (Const _) = []
 vars (Var x) = [x]
 vars (Not p) = vars p
 vars (And p q) = vars p ++ vars q
+vars (Or p q) = vars p ++ vars q
 vars (Imply p q) = vars p ++ vars q
+vars (Equiv p q) = vars p ++ vars q
 
 bools :: Int -> [[Bool]]
 bools 0 = [[]]
@@ -78,24 +87,32 @@ isTaut p = all (`evalP` p) $ substs p
 
 -- Abstract Machine
 
-data Expr = Val Int | Add Expr Expr deriving (Ord, Eq, Show, Read)
+data Expr
+  = Val Int
+  | Add Expr Expr
+  | Mult Expr Expr
+  deriving (Ord, Eq, Show, Read)
 
 value :: Expr -> Int
 value (Val x) = x
 value (Add x y) = value x + value y
+value (Mult x y) = value x * value y
 
 type Cont = [Op]
 
-data Op = EVAL Expr | ADD Int
+data Op = AEVAL Expr | MEVAL Expr | ADD Int | MULT Int
 
 eval :: Expr -> Cont -> Int
 eval (Val n) c = exec c n
-eval (Add x y) c = eval x (EVAL y : c)
+eval (Add x y) c = eval x (AEVAL y : c)
+eval (Mult x y) c = eval x (MEVAL y : c)
 
 exec :: Cont -> Int -> Int
 exec [] n = n
-exec (EVAL y : c) n = eval y (ADD n : c)
+exec (AEVAL y : c) n = eval y (ADD n : c)
+exec (MEVAL y : c) n = eval y (MULT n : c)
 exec (ADD n : c) m = exec c (n + m)
+exec (MULT n : c) m = exec c (n * m)
 
 value' :: Expr -> Int
 value' e = eval e []
@@ -148,3 +165,34 @@ balance [x] = Leaf' x
 balance xs = Node' (balance ys) (balance zs)
   where
     (ys, zs) = split xs
+
+-- Exercise 5
+folde :: (Int -> a) -> (a -> a -> a) -> Expr -> a
+folde f g (Val x) = f x
+folde f g (Add x y) = g (folde f g x) (folde f g y)
+
+-- Exercise 6
+eval' :: Expr -> Int
+eval' = folde id (+)
+
+size :: Expr -> Int
+size = folde (const 1) (+)
+
+-- Exercise 7
+{-
+instance (Eq a) => Eq (Maybe a) where
+  Nothing == Nothing = True
+  Just x == Just y = x == y
+  _ == _ = False
+
+instance (Eq a) => Eq [a] where
+  [] == [] = True
+  (x : xs) == (y : ys)
+    | x == y = xs == ys
+    | otherwise = False
+  _ == _ = False
+-}
+
+-- Exercise 8 Done above
+
+-- Exercise 9 Done above
