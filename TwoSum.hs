@@ -8,7 +8,7 @@ import Data.Maybe
 twoSum :: Int -> [Int] -> [(Int, Int)]
 twoSum k = go mempty . zip [0 ..]
   where
-    go idxs [] = []
+    go _ [] = []
     go idxs ((i, x) : ixs) =
       map (,i) (idxs ! (k - x))
         ++ go (alter (Just [i] <>) x idxs) ixs
@@ -30,7 +30,7 @@ twoSum'' k xs =
 twoSumMaybe :: Int -> [Int] -> [(Int, Int)]
 twoSumMaybe k = fromMaybe [] . go mempty . zip [0 ..]
   where
-    go idxs [] = Nothing
+    go _ [] = Nothing
     go idxs ((i, x) : ixs) =
       (map (,i) <$> (idxs !? (k - x)))
         <> go (Map.alter (Just [i] <>) x idxs) ixs
