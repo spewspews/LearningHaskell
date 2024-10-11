@@ -27,6 +27,7 @@ module HuttonChap16 where
 open import Haskell.Prelude
 open import Haskell.Law.Equality using (sym; begin_; _≡⟨⟩_; step-≡; _∎; cong)
 open import Haskell.Law.Eq.Def using (IsLawfulEq; eqReflexivity)
+open import Haskell.Law.Num.Def using (+-assoc)
 \end{code}
 
 \noindent
@@ -236,7 +237,7 @@ compile-exec-eval e =
 \end{code}
 
 \noindent
-\textsc{Exercise 1}: Show that \verb!add n (Suc m) = Suc (add n m)! by induction on \texttt{n}
+\textsc{Exercise 1.} Show that \verb!add n (Suc m) = Suc (add n m)! by induction on \texttt{n}
 
 \begin{code}
 +-suc : (n m : Nat) → n + (suc m) ≡ suc (n + m)
@@ -254,7 +255,7 @@ compile-exec-eval e =
 \end{code}
 
 \noindent
-\textsc{Exercise 2}: Using this property, together with \texttt{add n zero = n}, show that addition is commutative, \texttt{add n m = add m n}, by induction on \texttt{n}.
+\textsc{Exercise 2.} Using this property, together with \texttt{add n zero = n}, show that addition is commutative, \texttt{add n m = add m n}, by induction on \texttt{n}.
 
 \begin{code}
 +-zero : (n : Nat) → n + zero ≡ n
@@ -289,7 +290,7 @@ compile-exec-eval e =
 \end{code}
 
 \noindent
-\textsc{Exercise 3}
+\textsc{Exercise 3.}
 Complete the proof of the correctness of replicate by showing that it produces a list with identical elements, \verb!all (== x) (replicate n x)!, by induction on $n ≥ 0$. Hint: show that the property is always \verb!True!.
 
 \begin{code}
@@ -311,6 +312,84 @@ all-repl (suc n) x =
 \end{code}
 
 \noindent
-\textsc{Exercise 4}: This is \verb!++-[]! and \verb!++-assoc! above.
+\textsc{Exercise 4.} This is \verb!++-[]! and \verb!++-assoc! above.
+\vspace{3pt}
 
+\noindent
+\textsc{Exercise 5.} Using the above definition for \texttt{++}, together with the definitions for \texttt{take} and \texttt{drop} show that \verb!take n xs ++ drop n xs! $=$ \verb!xs!, by simultaneous induction on the integer n and the list xs. Hint: there are three cases, one for each pattern of arguments in the definitions of take and drop.
+
+\begin{code}
+take-drop-nat : {a : Set} → (n : Nat) → (xs : List a)
+    → takeNat n xs ++ dropNat n xs ≡ xs
+take-drop-nat n [] = refl
+take-drop-nat zero (x ∷ xs) =
+  begin
+    takeNat zero (x ∷ xs) ++ dropNat zero (x ∷ xs)
+  ≡⟨⟩ -- Apply takeNat and dropNat
+    [] ++ x ∷ xs
+  ≡⟨⟩
+    x ∷ xs
+  ∎
+take-drop-nat (suc n) (x ∷ xs) =
+  begin
+    takeNat (suc n) (x ∷ xs) ++ dropNat (suc n) (x ∷ xs)
+  ≡⟨⟩ -- Apply takeNat and dropNat and ++
+    x ∷ takeNat n xs ++ dropNat n xs
+  ≡⟨ cong (x ∷_) (take-drop-nat n xs) ⟩
+    x ∷ xs
+  ∎
+take-drop : {a : Set} → (n : Int) → ⦃ iNN : IsNonNegativeInt n ⦄
+    → (xs : List a) → take n xs ++ drop n xs ≡ xs
+take-drop n xs =
+  begin
+    take n xs ++ drop n xs
+  ≡⟨⟩ -- Apply take and drop
+    takeNat (intToNat n) xs ++ dropNat (intToNat n) xs
+  ≡⟨ take-drop-nat (intToNat n) xs ⟩
+    xs
+  ∎
+\end{code}
+
+\noindent
+\textsc{Exercise 6.} Given the \texttt{Tree} definition above, show that the number of leaves in such a tree is always one greater than the number of nodes, by induction on trees. Hint: start by defining functions that count the number of leaves and nodes in a tree.
+
+\begin{code}
+nLeaves : {a : Set} → Tree a → Int
+nLeaves (Leaf x) = 1
+nLeaves (Node tₗ tᵣ) = nLeaves tₗ + nLeaves tᵣ
+{-# COMPILE AGDA2HS nLeaves #-}
+
+nNodes : {a : Set} → Tree a → Int
+nNodes (Leaf x) = 0
+nNodes (Node tₗ tᵣ) = nNodes tₗ + nNodes tᵣ + 1
+{-# COMPILE AGDA2HS nNodes #-}
+
+leaves-nodes : {a : Set} → (t : Tree a)
+    → nLeaves t ≡ nNodes t + 1
+leaves-nodes (Leaf x) =
+  begin
+    nLeaves (Leaf x)
+  ≡⟨⟩
+    1
+  ≡⟨⟩
+    0 + 1
+  ≡⟨⟩
+    nNodes (Leaf x) + 1
+  ∎
+leaves-nodes (Node tₗ tᵣ) =
+  begin
+    nLeaves (Node tₗ tᵣ)
+  ≡⟨⟩
+    nLeaves tₗ + nLeaves tᵣ
+  ≡⟨ cong (_+ nLeaves tᵣ) (leaves-nodes tₗ) ⟩
+    nNodes tₗ + 1 + nLeaves tᵣ
+  ≡⟨ cong ((nNodes tₗ + 1) +_) (leaves-nodes tᵣ) ⟩
+    nNodes tₗ + 1 + (nNodes tᵣ + 1)
+  ≡⟨ {!   !} ⟩
+    (nNodes tₗ + 1 + nNodes tᵣ) + 1
+  ≡⟨ {!   !} ⟩
+    nNodes (Node tₗ tᵣ) + 1
+  ∎
+\end{code}
 \end{document}
+  
