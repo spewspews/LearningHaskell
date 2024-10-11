@@ -381,8 +381,7 @@ nNodes (Node tₗ tᵣ) = 1 + nNodes tₗ + nNodes tᵣ
 {-# COMPILE AGDA2HS nNodes #-}
 \end{code}
 \begin{code}
-leaves-nodes : {a : Set} → (t : Tree a)
-    → nLeaves t ≡ 1 + nNodes t
+leaves-nodes : {a : Set} → (t : Tree a) → nLeaves t ≡ 1 + nNodes t
 leaves-nodes (Leaf x) = refl
 leaves-nodes (Node tₗ tᵣ) =
   begin
@@ -506,17 +505,17 @@ module FunctorLawsTree where
     ∎
 \end{code}
 \begin{code}
-  composition : (t : Tree a) → (f : a → b) → (g : b → c)
+  comp : (t : Tree a) → (f : a → b) → (g : b → c)
     → fmap (g ∘ f) t ≡ (fmap g ∘ fmap f) t
-  composition (Leaf x) f g = refl
-  composition (Node tₗ tᵣ) f g =
+  comp (Leaf x) f g = refl
+  comp (Node tₗ tᵣ) f g =
     begin
       fmap (g ∘ f) (Node tₗ tᵣ)
     ≡⟨⟩ -- Apply fmap
       Node (fmap (g ∘ f) tₗ) (fmap (g ∘ f) tᵣ)
-    ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (composition tₗ f g) ⟩
+    ≡⟨ cong (λ x → Node x (fmap (g ∘ f) tᵣ)) (comp tₗ f g) ⟩ -- Induction
       Node ((fmap g ∘ fmap f) tₗ) (fmap (g ∘ f) tᵣ)
-    ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (composition tᵣ f g) ⟩
+    ≡⟨ cong (Node ((fmap g ∘ fmap f) tₗ)) (comp tᵣ f g) ⟩ -- Induction
       Node ((fmap g ∘ fmap f) tₗ) ((fmap g ∘ fmap f) tᵣ)
     ≡⟨⟩ -- Unapply fmap
       fmap g (Node (fmap f tₗ) (fmap f tᵣ))
@@ -533,7 +532,7 @@ module LawfulFunctorTree where
   instance
     isLawful : IsLawfulFunctor Tree
     identity ⦃ isLawful ⦄ = FunctorLawsTree.identity
-    composition ⦃ isLawful ⦄ = FunctorLawsTree.composition
+    composition ⦃ isLawful ⦄ = FunctorLawsTree.comp
 \end{code}
 
 \noindent
@@ -686,7 +685,7 @@ module MonadLawsList where
       fmap f (x ∷ xs)
     ≡⟨⟩ -- Apply fmap
       (f x ∷ []) ++ fmap f xs
-    ≡⟨ cong ((f x ∷ []) ++_) (fmap2bind f xs) ⟩
+    ≡⟨ cong ((f x ∷ []) ++_) (fmap2bind f xs) ⟩ -- Induction
       (f x ∷ []) ++ (xs >>= (return ∘ f))
     ≡⟨⟩ -- Unapply return
       (return (f x)) ++ (xs >>= (return ∘ f))
@@ -704,9 +703,9 @@ module MonadLawsList where
       xs >>= return
     ≡⟨⟩ -- Unapply id
       xs >>= (return ∘ id)
-    ≡⟨ sym (fmap2bind id xs) ⟩
+    ≡⟨ sym (fmap2bind id xs) ⟩ -- Apply fmap2bind
       map id xs
-    ≡⟨ Functor.identity xs ⟩
+    ≡⟨ Functor.identity xs ⟩ -- Apply Functor Law: identity
       xs
     ∎
 \end{code}
@@ -719,9 +718,9 @@ module MonadLawsList where
       ((x ∷ xs) >>= f) ++ (ys >>= f)
     ≡⟨⟩ -- Apply >>=
       (f x ++ (xs >>= f)) ++ (ys >>= f)
-    ≡⟨ ++-assoc (f x) (xs >>= f) (ys >>= f) ⟩
+    ≡⟨ ++-assoc (f x) (xs >>= f) (ys >>= f) ⟩ -- Move parens
       f x ++ (xs >>= f) ++ (ys >>= f)
-    ≡⟨ cong (f x ++_) (++-distrib xs ys f) ⟩
+    ≡⟨ cong (f x ++_) (++-distrib xs ys f) ⟩ -- Induction
       f x ++ ((xs ++ ys) >>= f)
     ≡⟨⟩ -- Unapply >>=
       (x ∷ (xs ++ ys)) >>= f
@@ -739,9 +738,9 @@ module MonadLawsList where
       (x ∷ xs) >>= (λ x → f x >>= g)
     ≡⟨⟩ -- Apply >>=
       (f x >>= g) ++ (xs >>= λ x → f x >>= g)
-    ≡⟨ cong ((f x >>= g) ++_) (associativity xs f g) ⟩
+    ≡⟨ cong ((f x >>= g) ++_) (associativity xs f g) ⟩ -- Induction
       (f x >>= g) ++ ((xs >>= f) >>= g)
-    ≡⟨ ++-distrib (f x) (xs >>= f) g ⟩
+    ≡⟨ ++-distrib (f x) (xs >>= f) g ⟩ -- Move Parens
       (f x ++ (xs >>= f)) >>= g
     ≡⟨⟩ -- Unapply inner >>=
       ((x ∷ xs) >>= f) >>= g
@@ -757,9 +756,9 @@ module MonadLawsList where
       f ∷ fs <*> xs
     ≡⟨⟩ -- Apply <*>
       fmap f xs ++ (fs <*> xs)
-    ≡⟨ cong (_++ (fs <*> xs)) (fmap2bind f xs) ⟩
+    ≡⟨ cong (_++ (fs <*> xs)) (fmap2bind f xs) ⟩ -- Apply fmap2bind
       xs >>= (return ∘ f) ++ (fs <*> xs)
-    ≡⟨ cong (xs >>= (return ∘ f) ++_) (sequence2bind fs xs) ⟩
+    ≡⟨ cong (xs >>= (return ∘ f) ++_) (sequence2bind fs xs) ⟩  -- Induction
       xs >>= (return ∘ f)
         ++ (fs >>= λ f → (xs >>= (return ∘ f)))
     ≡⟨⟩ -- Unapply λ
@@ -782,11 +781,12 @@ module MonadLawsList where
       fmap (const id x) ys ++ (fmap (const id) xs <*> ys)
     ≡⟨⟩ -- Apply const
       fmap id ys ++ (fmap (const id) xs <*> ys)
+    -- Functor Law: identity
     ≡⟨ cong (_++ (fmap (const id) xs <*> ys)) (Functor.identity ys) ⟩
       ys ++ (fmap (const id) xs <*> ys)
     ≡⟨⟩ -- Unapply *>
       ys ++ (xs *> ys)
-    ≡⟨ cong (ys ++_) (rSequence2rBind xs ys) ⟩
+    ≡⟨ cong (ys ++_) (rSequence2rBind xs ys) ⟩ -- Induction
       ys ++ (xs >> ys)
     ≡⟨⟩ -- Apply >>
       ys ++ (xs >>= const ys)
@@ -827,13 +827,14 @@ module Exercise11 where
   comp : Expr → Code
   comp (Val n) = PUSH n ∷ []
   comp (Add eₗ eᵣ) = comp eₗ ++ comp eᵣ ++ ADD ∷ []
-
+\end{code}
+\begin{code}
   postulate
     comp' : Expr → Code → Code
     comp'-comp : (e : Expr) → (c : Code) → comp' e c ≡ comp e ++ c
-
-  comp'-def : (e : Expr) → (c : Code)
-    → comp' e c ≡ CC.comp e c
+\end{code}
+\begin{code}
+  comp'-def : (e : Expr) → (c : Code) → comp' e c ≡ CC.comp e c
   comp'-def (Val n) c =
     begin
       comp' (Val n) c
@@ -846,26 +847,28 @@ module Exercise11 where
     ≡⟨⟩ -- Unapply CC.comp
       CC.comp (Val n) c
     ∎
+\end{code}
+\begin{code}
   comp'-def (Add eₗ eᵣ) c =
     begin
       comp' (Add eₗ eᵣ) c
-    ≡⟨ comp'-comp (Add eₗ eᵣ) c ⟩
+    ≡⟨ comp'-comp (Add eₗ eᵣ) c ⟩ -- Postulate
       comp (Add eₗ eᵣ) ++ c
     ≡⟨⟩ -- Apply comp
       (comp eₗ ++ (comp eᵣ ++ ADD ∷ [])) ++ c
-    ≡⟨ ++-assoc (comp eₗ) (comp eᵣ ++ ADD ∷ []) c ⟩
+    ≡⟨ ++-assoc (comp eₗ) (comp eᵣ ++ ADD ∷ []) c ⟩ -- Move parens
       comp eₗ ++ ((comp eᵣ ++ ADD ∷ []) ++ c)
-    ≡⟨ cong (comp eₗ ++_) (++-assoc (comp eᵣ) (ADD ∷ []) c) ⟩
+    ≡⟨ cong (comp eₗ ++_) (++-assoc (comp eᵣ) (ADD ∷ []) c) ⟩ -- Move parens
       comp eₗ ++ (comp eᵣ ++ (ADD ∷ [] ++ c))
     ≡⟨⟩ -- Apply ++
       comp eₗ ++ comp eᵣ ++ ADD ∷ c
-    ≡⟨ cong (comp eₗ ++_) (sym (comp'-comp eᵣ (ADD ∷ c))) ⟩
+    ≡⟨ cong (comp eₗ ++_) (sym (comp'-comp eᵣ (ADD ∷ c))) ⟩ -- Postulate
       comp eₗ ++ comp' eᵣ (ADD ∷ c)
-    ≡⟨ sym (comp'-comp eₗ (comp' eᵣ (ADD ∷ c))) ⟩
+    ≡⟨ sym (comp'-comp eₗ (comp' eᵣ (ADD ∷ c))) ⟩ -- Postulate
       comp' eₗ (comp' eᵣ (ADD ∷ c))
-    ≡⟨ cong (comp' eₗ) (comp'-def eᵣ (ADD ∷ c)) ⟩
+    ≡⟨ cong (comp' eₗ) (comp'-def eᵣ (ADD ∷ c)) ⟩ -- Induction
       comp' eₗ (CC.comp eᵣ (ADD ∷ c))
-    ≡⟨ comp'-def eₗ (CC.comp eᵣ (ADD ∷ c)) ⟩
+    ≡⟨ comp'-def eₗ (CC.comp eᵣ (ADD ∷ c)) ⟩ -- Induction
       CC.comp eₗ (CC.comp eᵣ (ADD ∷ c))
     ≡⟨⟩ -- Unapply CC.comp
       CC.comp (Add eₗ eᵣ) c
