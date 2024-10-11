@@ -1,5 +1,6 @@
 import Data.Char
 import Data.List
+import Data.Maybe (fromJust, mapMaybe)
 import System.IO
 
 size :: Int
@@ -117,3 +118,84 @@ run' g p
 
 prompt :: Player -> String
 prompt p = "Player " ++ show p ++ ", enter your move: "
+
+data Tree a = Node a [Tree a] deriving (Show, Foldable)
+
+gametree :: Grid -> Player -> Tree Grid
+gametree g p = Node g [gametree g' (next p) | g' <- moves g p]
+
+moves :: Grid -> Player -> [Grid]
+moves g p
+    | won g = []
+    | full g = []
+    | otherwise = mapMaybe (\i -> move g i p) [1 .. size ^ 2 - 1]
+
+prune :: Int -> Tree a -> Tree a
+prune 0 (Node x _) = Node x []
+prune n (Node x ts) = Node x $ map (prune (n - 1)) ts
+
+depth :: Int
+depth = 9
+
+minimax :: Tree Grid -> Tree (Grid, Player)
+minimax (Node g [])
+    | wins O g = Node (g, O) []
+    | wins X g = Node (g, X) []
+    | otherwise = Node (g, B) []
+minimax (Node g ts)
+    | turn g == O = Node (g, minimum ps) ts'
+    | turn g == X = Node (g, maximum ps) ts'
+  where
+    ts' = map minimax ts
+    ps = map (\(Node (_, p) _) -> p) ts'
+
+bestmove :: Grid -> Player -> Grid
+bestmove g p = head [g' | Node (g', p') _ <- ts, p' == best]
+  where
+    Node (_, best) ts = minimax $ prune depth $ gametree g p
+
+main :: IO ()
+{-
+main = do
+    hSetBuffering stdout NoBuffering
+    play empty O
+-}
+main = do
+    putStr "Nodes: "
+    print $ foldl' (\i _ -> i + 1) 0 gt
+    putStr "Nodes: "
+    print $ nodes gt
+    putStr "Depth: "
+    print $ treeDepth gt
+  where
+    gt = gametree empty O
+
+play :: Grid -> Player -> IO ()
+play g p = do
+    cls
+    goto (1, 1)
+    putGrid g
+    play' g p
+
+play' :: Grid -> Player -> IO ()
+play' g p
+    | wins O g = putStrLn "Player O Wins!\n"
+    | wins X g = putStrLn "Player X Wins!\n"
+    | full g = putStrLn "It's a draw!\n"
+    | p == O = do
+        i <- getNat (prompt p)
+        case move g i p of
+            Just g' -> play g' (next p)
+            Nothing -> do
+                putStrLn "ERROR: Invalid move"
+                play' g p
+    | p == X = do
+        putStr "Player X is thinking... "
+        (play $! bestmove g p) (next p)
+
+nodes :: Tree a -> Int
+nodes (Node _ ts) = 1 + sum (map nodes ts)
+
+treeDepth :: Tree a -> Int
+treeDepth (Node _ []) = 1
+treeDepth (Node _ ts) = 1 + maximum (map treeDepth ts)
