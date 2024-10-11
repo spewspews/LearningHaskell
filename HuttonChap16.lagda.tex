@@ -79,7 +79,9 @@ flatten' : {a : Set } → Tree a → List a → List a
 flatten' (Leaf x) xs = x ∷ xs
 flatten' (Node tₗ tᵣ) xs = flatten' tₗ (flatten' tᵣ xs)
 {-# COMPILE AGDA2HS flatten' #-}
+\end{code}
 
+\begin{code}
 flatten'-flatten : {a : Set} → (t : Tree a) → (xs : List a)
     → flatten' t xs ≡ flatten t ++ xs
 flatten'-flatten (Leaf x) xs = refl
@@ -106,14 +108,150 @@ flatten'-≡-flatten (Node tₗ tᵣ) =
     flatten' (Node tₗ tᵣ) []
   ≡⟨⟩ -- Apply flatten'
     flatten' tₗ (flatten' tᵣ [])
-  ≡⟨ cong (flatten' tₗ) (flatten'-flatten tᵣ []) ⟩ -- Inner induction
+  ≡⟨ cong (flatten' tₗ) (flatten'-flatten tᵣ []) ⟩ -- Apply the above equality
     flatten' tₗ (flatten tᵣ ++ [])
-  ≡⟨ flatten'-flatten tₗ (flatten tᵣ ++ []) ⟩ -- Induction again
+  ≡⟨ flatten'-flatten tₗ (flatten tᵣ ++ []) ⟩ -- Apply it again
     flatten tₗ ++ (flatten tᵣ ++ [])
   ≡⟨ cong (flatten tₗ ++_) (++-[] (flatten tᵣ)) ⟩ -- Remove trailing []
     flatten tₗ ++ flatten tᵣ
   ≡⟨⟩ -- Unapply flatten
     flatten (Node tₗ tᵣ)
+  ∎
+\end{code}
+
+\noindent
+\textsc{Compiler correctness}
+
+\begin{code}
+data Expr : Set where
+    Val : Int → Expr
+    Add : Expr → Expr → Expr
+{-# COMPILE AGDA2HS Expr #-}
+
+eval : Expr → Int
+eval (Val n) = n
+eval (Add x y) = eval x + eval y
+{-# COMPILE AGDA2HS eval #-}
+
+Stack = List Int
+{-# COMPILE AGDA2HS Stack #-}
+
+data Op : Set where
+    PUSH : Int → Op
+    ADD : Op
+{-# COMPILE AGDA2HS Op #-}
+\end{code}
+
+\begin{code}
+Code = List Op
+{-# COMPILE AGDA2HS Code #-}
+
+exec : Code → Stack → Stack
+exec [] s = s
+exec (PUSH n ∷ c) s = exec c $ n ∷ s
+exec (ADD ∷ c) (m ∷ n ∷ s) = exec c $ n + m ∷ s
+exec (ADD ∷ c) _ = []
+{-# COMPILE AGDA2HS exec #-}
+
+comp : Expr → Code → Code
+comp (Val n) c = PUSH n ∷ c
+comp (Add x y) c = comp x $ comp y $ ADD ∷ c
+{-# COMPILE AGDA2HS comp #-}
+
+comp-exec-eval : (e : Expr) → (c : Code) → (s : Stack)
+    → exec (comp e c) s ≡ exec c (eval e ∷ s)
+comp-exec-eval (Val n) c s =
+  begin
+    exec (comp (Val n) c) s
+  ≡⟨⟩ -- Apply comp
+    exec (PUSH n ∷ c) s
+  ≡⟨⟩ -- Apply exec
+    exec c (n ∷ s)
+  ≡⟨⟩ -- Unapply eval
+    exec c (eval (Val n) ∷ s)
+  ∎
+comp-exec-eval (Add x y) c s =
+  begin
+    exec (comp (Add x y) c) s
+  ≡⟨⟩ -- Apply comp
+    exec (comp x $ comp y $ ADD ∷ c) s
+  ≡⟨ comp-exec-eval x (comp y $ ADD ∷ c) s ⟩ -- Induction
+    exec (comp y $ ADD ∷ c) (eval x ∷ s)
+  ≡⟨ comp-exec-eval y (ADD ∷ c) (eval x ∷ s) ⟩ -- Induction Again
+    exec (ADD ∷ c) (eval y ∷ eval x ∷ s)
+  ≡⟨⟩ -- Apply exec
+    exec c ((eval x) + (eval y) ∷ s)
+  ≡⟨⟩ -- Unapply eval
+    exec c (eval (Add x y) ∷ s)
+  ∎
+
+compile : Expr → Code
+compile e = comp e []
+{-# COMPILE AGDA2HS compile #-}
+
+compile-exec-eval : (e : Expr) → exec (compile e) [] ≡ eval e ∷ []
+compile-exec-eval e =
+  begin
+    exec (compile e) []
+  ≡⟨⟩ -- Apply compile
+    exec (comp e []) []
+  ≡⟨ comp-exec-eval e [] [] ⟩
+    exec [] (eval e ∷ [])
+  ≡⟨⟩ -- Apply exec
+    eval e ∷ []
+  ∎
+\end{code}
+
+\noindent
+\textsc{Exercise 1}: Show that \verb!add n (Suc m) = Suc (add n m)! by induction on \texttt{n}
+
+\begin{code}
++-suc : (n m : Nat) → n + (suc m) ≡ suc (n + m)
++-suc zero m = refl
++-suc (suc n) m =
+  begin
+    (suc n) + (suc m)
+  ≡⟨⟩ -- Apply +
+    suc (n + suc m)
+  ≡⟨ cong suc (+-suc n m) ⟩
+    suc (suc (n + m))
+  ≡⟨⟩ -- Unapply +
+    suc (suc n + m)
+  ∎
+\end{code}
+
+\noindent
+\textsc{Exercise 2}: Using this property, together with \texttt{add n zero = n}, show that addition is commutative, \texttt{add n m = add m n}, by induction on \texttt{n}.
+
+\begin{code}
++-zero : (n : Nat) → n + zero ≡ n
++-zero zero = refl
++-zero (suc n) =
+  begin
+    suc n + zero
+  ≡⟨⟩ -- Apply +
+    suc (n + zero)
+  ≡⟨ cong suc (+-zero n) ⟩
+    suc n
+  ∎
++-commut : (n m : Nat) → n + m ≡ m + n
++-commut zero m =
+  begin
+    zero + m
+  ≡⟨⟩ -- Apply +
+    m
+  ≡⟨ sym (+-zero m) ⟩
+    m + zero
+  ∎
++-commut (suc n) m =
+  begin
+    suc n + m
+  ≡⟨⟩ -- Apply +
+    suc (n + m)
+  ≡⟨ cong suc (+-commut n m) ⟩
+    suc (m + n)
+  ≡⟨ sym (+-suc m n) ⟩
+    m + suc n
   ∎
 \end{code}
 
