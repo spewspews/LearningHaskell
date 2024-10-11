@@ -55,3 +55,43 @@ perms = foldr (concatMap . interleave) [[]]
 
 choices :: [a] -> [[a]]
 choices = concatMap perms . subs
+
+solution :: Expr -> [Int] -> Int -> Bool
+solution e ns n =
+    elem (values e) (choices ns) && eval e == Just n
+
+bookExample :: Expr
+bookExample = App Mul (App Add (Val 1) (Val 50)) (App Sub (Val 25) (Val 10))
+
+isSolution :: Bool
+isSolution = solution bookExample [1, 3, 7, 10, 25, 50] 765
+
+split :: [a] -> [([a], [a])]
+split [] = []
+split [_] = []
+split (x : xs) = ([x], xs) : [(x : ls, rs) | (ls, rs) <- split xs]
+
+exprs :: [Int] -> [Expr]
+exprs [] = []
+exprs [n] = [Val n]
+exprs ns = do
+    (ls, rs) <- split ns
+    l <- exprs ls
+    r <- exprs rs
+    combine l r
+
+{-
+exprs ns =
+    [ e
+    | (ls, rs) <- split ns
+    , l <- exprs ls
+    , r <- exprs rs
+    , e <- combine l r
+    ]
+-}
+
+combine :: Expr -> Expr -> [Expr]
+combine l r = [App o l r | o <- ops]
+
+ops :: [Op]
+ops = [Add, Sub, Mul, Div]
