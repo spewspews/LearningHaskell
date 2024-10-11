@@ -29,12 +29,12 @@ parse = fromList . reverse . (END :) . fst . go ([], 0)
       c -> go (CHAR c : ops, 1) cs
 
 match :: Regex -> String -> Bool
-match r = elem END . go [0] []
+match r s = go [0] [] $ s ++ ['\NUL']
   where
     go [] next (_ : cs) = go (0 : next) [] cs
-    go (i : ops) next s@(c : cs) = case r ! i of
+    go (i : ops) next s@(c : _) = case r ! i of
       DOT -> go ops (i + 1 : next) s
       CHAR c' -> if c == c' then go ops (i + 1 : next) s else go ops next s
       FORK f g -> go (i + f : i + g : ops) next s
-      END -> [END]
-    go cur _ [] = map (r !) cur
+      END -> True
+    go cur _ [] = False
