@@ -152,8 +152,8 @@ minimax (Node (g, p) ts)
     ts' = map minimax ts
     ps = map (\(Node (_, p) _) -> p) ts'
 
-bestmoves :: Tree (Grid, Player) -> Player -> [Tree (Grid, Player)]
-bestmoves (Node (g, best) ts) p = filter (\(Node (_, p') _) -> p' == best) ts
+bestmoves :: Tree (Grid, Player) -> [Tree (Grid, Player)]
+bestmoves (Node (g, best) ts) = filter (\(Node (_, p) _) -> p == best) ts
 
 maxDepth :: Tree a -> Int
 maxDepth (Node _ []) = 0
@@ -212,5 +212,5 @@ play' gt@(Node (g, _) _) p
                 play' gt p
     | p == X = do
         putStr "Player X is thinking... "
-        g' <- getRandom $ bestmoves gt p
+        g' <- getRandom $ bestmoves gt
         play g' (next p)
