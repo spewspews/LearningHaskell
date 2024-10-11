@@ -1,4 +1,4 @@
-import qualified Data.IntSet as S (IntSet, fromList, insert, member, toList)
+import qualified Data.IntSet as S (IntSet, insert, member)
 import qualified Data.Vector as V (Vector, fromList, (!))
 
 data Op
@@ -43,16 +43,18 @@ cons i ul@(UL s l) =
 
 infixr 5 `cons`
 
-fromList :: [Int] -> UL
-fromList l = UL s (S.toList s) where s = S.fromList l
-
 match :: Regex -> String -> Bool
-match r s = go (fromList [0]) empty $ s ++ ['\NUL']
+match r s = go (0 `cons` empty) empty $ s ++ ['\NUL']
   where
     go (UL _ []) next (_ : cs) = go (0 `cons` next) empty cs
     go (UL is (op : ops)) next s@(c : _) = case r V.! op of
-      DOT -> go (UL is ops) (op + 1 `cons` next) s
-      CHAR c' -> if c == c' then go (UL is ops) (op + 1 `cons` next) s else go (UL is ops) next s
-      FORK j k -> go (op + j `cons` op + k `cons` UL is ops) next s
+      DOT -> go tl (op + 1 `cons` next) s
+      CHAR c' ->
+        if c == c'
+          then go tl (op + 1 `cons` next) s
+          else go tl next s
+      FORK j k -> go (op + j `cons` op + k `cons` tl) next s
       END -> True
+      where
+        tl = UL is ops
     go _ _ "" = False
