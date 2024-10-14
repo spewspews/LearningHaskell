@@ -46,6 +46,7 @@ add : Stack → Stack
 add [] = []
 add (x ∷ []) = []
 add (x ∷ y ∷ s) = y + x ∷ s
+{-# COMPILE AGDA2HS add #-}
 
 postulate
   eval' : Expr → Stack → Stack
