@@ -30,11 +30,6 @@ data Expr : Set where
     Add : Expr → Expr → Expr
 {-# COMPILE AGDA2HS Expr #-}
 
-eval : Expr → Int
-eval (Val n) = n
-eval (Add eₗ eᵣ) = eval eₗ + eval eᵣ
-{-# COMPILE AGDA2HS eval #-}
-
 Stack = List Int
 {-# COMPILE AGDA2HS Stack #-}
 
@@ -48,39 +43,81 @@ add (x ∷ []) = []
 add (x ∷ y ∷ s) = y + x ∷ s
 {-# COMPILE AGDA2HS add #-}
 
-postulate
-  eval' : Expr → Stack → Stack
-  eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s
+module Naïve where
+  eval : Expr → Int
+  eval (Val n) = n
+  eval (Add eₗ eᵣ) = eval eₗ + eval eᵣ
 
-eval'-val : (n : Int) → (s : Stack)
-  → eval' (Val n) s ≡ push n s
-eval'-val n s =
-  begin
-    eval' (Val n) s
-  ≡⟨ eval'-eval (Val n) s ⟩ -- Specification
-    eval (Val n) ∷ s
-  ≡⟨⟩ -- Apply eval
-    n ∷ s
-  ≡⟨⟩ -- Unapply push
-    push n s
-  ∎
+module DefineEval' where
+  open Naïve
+
+  eval'-val : (eval' : Expr → Stack → Stack)
+    → (eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s)
+    → (n : Int) → (s : Stack) → eval' (Val n) s ≡ push n s
+  eval'-val eval' eval'-eval n s =
+    begin
+      eval' (Val n) s
+    ≡⟨ eval'-eval (Val n) s ⟩ -- Specification
+      eval (Val n) ∷ s
+    ≡⟨⟩ -- Apply eval
+      n ∷ s
+    ≡⟨⟩ -- Unapply push
+      push n s
+    ∎
 \end{code}
 \begin{code}
-eval'-add : (x y : Expr) → (s : Stack)
-  → eval' (Add x y) s ≡ add (eval' y (eval' x s))
-eval'-add x y s =
+  eval'-add : (eval' : Expr → Stack → Stack)
+    → (eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s)
+    → (x y : Expr) → (s : Stack)
+    → eval' (Add x y) s ≡ add (eval' y (eval' x s))
+  eval'-add eval' eval'-eval x y s =
+    begin
+      eval' (Add x y) s
+    ≡⟨ eval'-eval (Add x y) s ⟩ -- Specification
+      eval (Add x y) ∷ s
+    ≡⟨⟩ -- Apply eval
+      eval x + eval y ∷ s
+    ≡⟨⟩ -- Unapply add
+      add (eval y ∷ eval x ∷ s)
+    ≡⟨ cong (λ x → add (eval y ∷ x)) (sym (eval'-eval x s)) ⟩ -- Induction
+      add (eval y ∷ eval' x s)
+    ≡⟨ cong add (sym (eval'-eval y (eval' x s))) ⟩
+      add (eval' y (eval' x s))
+    ∎
+\end{code}
+\begin{code}
+eval' : Expr → Stack → Stack
+eval' (Val n) s = push n s
+eval' (Add eₗ eᵣ) s = add (eval' eᵣ (eval' eₗ s))
+{-# COMPILE AGDA2HS eval' #-}
+
+eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ Naïve.eval e ∷ s
+eval'-eval (Val n) s = refl
+eval'-eval (Add x y) s =
   begin
     eval' (Add x y) s
-  ≡⟨ eval'-eval (Add x y) s ⟩ -- Specification
-    eval (Add x y) ∷ s
-  ≡⟨⟩ -- Apply eval
-    eval x + eval y ∷ s
-  ≡⟨⟩ -- Unapply add
-    add (eval y ∷ eval x ∷ s)
-  ≡⟨ cong (λ x → add (eval y ∷ x)) (sym (eval'-eval x s)) ⟩ -- Induction
-    add (eval y ∷ eval' x s)
-  ≡⟨ cong add (sym (eval'-eval y (eval' x s))) ⟩
+  ≡⟨⟩
     add (eval' y (eval' x s))
+  ≡⟨ cong (λ s → add (eval' y s)) (eval'-eval x s) ⟩
+    add (eval' y (Naïve.eval x ∷ s))
+  ≡⟨ cong add (eval'-eval y (Naïve.eval x ∷ s)) ⟩
+    add (Naïve.eval y ∷ Naïve.eval x ∷ s)
+  ≡⟨⟩
+    Naïve.eval (Add x y) ∷ s
   ∎
-\end{code}   
+
+open import Haskell.Prim using (NonEmpty; itsNonEmpty)
+open import Haskell.Law.Equality using (subst)
+
+eval'-nonempty : (e : Expr) → NonEmpty (eval' e [])
+eval'-nonempty e = subst NonEmpty (sym (eval'-eval e [])) itsNonEmpty
+
+eval : Expr → Int
+eval e = head (eval' e [])
+  where instance
+    ne : NonEmpty (eval' e [])
+    ne = eval'-nonempty e
+{-# COMPILE AGDA2HS eval #-}
+\end{code} 
 \end{document}
+ 

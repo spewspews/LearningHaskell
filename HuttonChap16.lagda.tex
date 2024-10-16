@@ -831,13 +831,10 @@ module LawfulMonadList where
 
 \begin{code}
 module Exercise11 where
-  postulate
-    comp' : Expr → Code → Code
-    comp'-comp : (e : Expr) → (c : Code) → comp' e c ≡ comp e ++ c
-\end{code}
-\begin{code}
-  comp'-val : (n : Int) → (c : Code) → comp' (Val n) c ≡ (PUSH n ∷ c)
-  comp'-val n c =
+  comp'-val : (comp' : Expr → Code → Code)
+    → (comp'-comp : (e : Expr) → (c : Code) → comp' e c ≡ comp e ++ c)
+    → (n : Int) → (c : Code) → comp' (Val n) c ≡ (PUSH n ∷ c)
+  comp'-val comp' comp'-comp n c =
     begin
       comp' (Val n) c
     ≡⟨ comp'-comp (Val n) c ⟩
@@ -849,9 +846,11 @@ module Exercise11 where
     ∎
 \end{code}
 \begin{code}
-  comp'-add : (eₗ eᵣ : Expr) → (c : Code)
+  comp'-add : (comp' : Expr → Code → Code)
+    → (comp'-comp : (e : Expr) → (c : Code) → comp' e c ≡ comp e ++ c)
+    → (eₗ eᵣ : Expr) → (c : Code)
     → comp' (Add eₗ eᵣ) c ≡ comp' eₗ (comp' eᵣ (ADD ∷ c))
-  comp'-add eₗ eᵣ c =
+  comp'-add comp' comp'-comp eₗ eᵣ c =
     begin
       comp' (Add eₗ eᵣ) c
     ≡⟨ comp'-comp (Add eₗ eᵣ) c ⟩ -- Postulate
