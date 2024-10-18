@@ -30,6 +30,11 @@ data Expr : Set where
     Add : Expr → Expr → Expr
 {-# COMPILE AGDA2HS Expr #-}
 
+eval : Expr → Int
+eval (Val n) = n
+eval (Add eₗ eᵣ) = eval eₗ + eval eᵣ
+{-# COMPILE AGDA2HS eval #-}
+
 Stack = List Int
 {-# COMPILE AGDA2HS Stack #-}
 
@@ -43,14 +48,7 @@ add (x ∷ []) = []
 add (x ∷ y ∷ s) = y + x ∷ s
 {-# COMPILE AGDA2HS add #-}
 
-module Naïve where
-  eval : Expr → Int
-  eval (Val n) = n
-  eval (Add eₗ eᵣ) = eval eₗ + eval eᵣ
-
 module DefineEval' where
-  open Naïve
-
   eval'-val : (eval' : Expr → Stack → Stack)
     → (eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s)
     → (n : Int) → (s : Stack) → eval' (Val n) s ≡ push n s
@@ -91,7 +89,7 @@ eval' (Val n) s = push n s
 eval' (Add eₗ eᵣ) s = add (eval' eᵣ (eval' eₗ s))
 {-# COMPILE AGDA2HS eval' #-}
 
-eval'≡eval : (e : Expr) → (s : Stack) → eval' e s ≡ Naïve.eval e ∷ s
+eval'≡eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s
 eval'≡eval (Val n) s = refl
 eval'≡eval (Add x y) s =
   begin
@@ -99,27 +97,33 @@ eval'≡eval (Add x y) s =
   ≡⟨⟩ -- Apply eval'
     add (eval' y (eval' x s))
   ≡⟨ cong (λ s → add (eval' y s)) (eval'≡eval x s) ⟩ -- Induction
-    add (eval' y (Naïve.eval x ∷ s))
-  ≡⟨ cong add (eval'≡eval y (Naïve.eval x ∷ s)) ⟩ -- Induction
-    add (Naïve.eval y ∷ Naïve.eval x ∷ s)
-  ≡⟨⟩ -- Unapply add and Naïve.eval
-    Naïve.eval (Add x y) ∷ s
+    add (eval' y (eval x ∷ s))
+  ≡⟨ cong add (eval'≡eval y (eval x ∷ s)) ⟩ -- Induction
+    add (eval y ∷ eval x ∷ s)
+  ≡⟨⟩ -- Unapply add and eval
+    eval (Add x y) ∷ s
   ∎
-eval≡eval' : (e : Expr) → (s : Stack) → Naïve.eval e ∷ s ≡ eval' e s
+eval≡eval' : (e : Expr) → (s : Stack) → eval e ∷ s ≡ eval' e s
 eval≡eval' e s = sym $ eval'≡eval e s
+\end{code}
 
+Since \verb!eval' e s! is the same as \verb!eval e ∷ s!, this is evidence that \verb!eval' e s! is a non-empty list.
+
+\begin{code}
 open import Haskell.Prim using (NonEmpty; itsNonEmpty)
 open import Haskell.Law.Equality using (subst)
 
-eval'-nonempty : (e : Expr) → NonEmpty (eval' e [])
-eval'-nonempty e = subst NonEmpty (eval≡eval' e []) itsNonEmpty
+instance
+  eval'-nonempty : ⦃ e : Expr ⦄ → NonEmpty (eval' e [])
+  eval'-nonempty ⦃ e ⦄ = subst NonEmpty (eval≡eval' e []) itsNonEmpty
+\end{code}
 
-eval : Expr → Int
-eval e = head (eval' e [])
-  where instance
-    ne : NonEmpty (eval' e [])
-    ne = eval'-nonempty e
-{-# COMPILE AGDA2HS eval #-}
+Knowing that it is non-empty and from the previous proof, \texttt{eval} is simply redefined by taking the head.
+
+\begin{code}
+eval¹ : ⦃ Expr ⦄ → Int
+eval¹ ⦃ e ⦄ = head (eval' e [])
+{-# COMPILE AGDA2HS eval¹ #-}
 \end{code}
 \begin{code}
 Cont = Stack → Stack
@@ -164,9 +168,99 @@ eval'' (Val n) c = c ∘ push n
 eval'' (Add x y) c = eval'' x (eval'' y (c ∘ add))
 {-# COMPILE AGDA2HS eval'' #-}
 
+eval''≡eval' : (e : Expr) → (c : Cont) → (s : Stack)
+  → eval'' e c s ≡ c (eval' e s)
+eval''≡eval' (Val x) c s = refl
+eval''≡eval' (Add x y) c s =
+  begin
+    eval'' (Add x y) c s
+  ≡⟨⟩ -- Apply eval''
+    eval'' x (eval'' y (c ∘ add)) s
+  ≡⟨ eval''≡eval' x (eval'' y (c ∘ add)) s ⟩ -- Induction
+    eval'' y (c ∘ add) (eval' x s)
+  ≡⟨ eval''≡eval' y (c ∘ add) (eval' x s) ⟩ -- Induction
+    (c ∘ add) (eval' y (eval' x s))
+  ≡⟨⟩ -- Apply add
+    c (eval' (Add x y) s)
+  ∎
+\end{code}
+
+Thus \texttt{eval'} is simply redefined as follows:
+
+\begin{code}
 eval'¹ : Expr → Cont
 eval'¹ e = eval'' e id
 {-# COMPILE AGDA2HS eval'¹ #-}
 \end{code}
+\begin{code}
+haltC : Cont
+haltC = id
+{-# COMPILE AGDA2HS haltC #-}
+
+pushC : Int → Cont → Cont
+pushC n c = c ∘ push n
+{-# COMPILE AGDA2HS pushC #-}
+
+addC : Cont → Cont
+addC c = c ∘ add
+{-# COMPILE AGDA2HS addC #-}
+
+data Code : Set where
+  HALT : Code
+  PUSH : Int → Code → Code
+  ADD : Code → Code
+{-# COMPILE AGDA2HS Code deriving Show #-}
+
+exec : Code → Cont
+exec HALT = haltC
+exec (PUSH n c) = pushC n (exec c)
+exec (ADD c) = addC (exec c)
+{-# COMPILE AGDA2HS exec #-}
+
+comp' : Expr → Code → Code
+comp' (Val n) c = PUSH n c
+comp' (Add x y) c = comp' x (comp' y (ADD c))
+{-# COMPILE AGDA2HS comp' #-}
+
+comp : Expr → Code
+comp e = comp' e HALT
+{-# COMPILE AGDA2HS comp #-}
+\end{code}
+\begin{code}
+exec-comp'≡eval'' : (e : Expr) → (c : Code)
+  → exec (comp' e c) ≡ eval'' e (exec c)
+exec-comp'≡eval'' (Val n) c = refl
+exec-comp'≡eval'' (Add x y) c =
+  begin
+    exec (comp' (Add x y) c)
+  ≡⟨⟩ -- Apply comp'
+    exec (comp' x (comp' y (ADD c)))
+  ≡⟨ exec-comp'≡eval'' x (comp' y (ADD c)) ⟩ -- Induction
+    eval'' x (exec (comp' y (ADD c)))
+  ≡⟨ cong (eval'' x) (exec-comp'≡eval'' y (ADD c)) ⟩ -- Induction
+    eval'' x (eval'' y (exec (ADD c)))
+  ≡⟨⟩ -- Apply exec
+    eval'' x (eval'' y (addC (exec c)))
+  ≡⟨⟩ -- Unapply eval''
+    eval'' (Add x y) (exec c)
+  ∎
+\end{code}
+\begin{code}
+exec-comp≡eval : (e : Expr) → (s : Stack) → exec (comp e) s ≡ eval' e s
+exec-comp≡eval e s =
+  begin
+    exec (comp e) s
+  ≡⟨⟩ -- Apply comp
+    exec (comp' e HALT) s
+  ≡⟨ cong (_$ s) (exec-comp'≡eval'' e HALT) ⟩
+    eval'' e (exec HALT) s
+  ≡⟨⟩ -- Apply exec
+    eval'' e id s
+  ≡⟨ eval''≡eval' e id s ⟩
+    id (eval' e s)
+  ≡⟨⟩ -- Apply id
+    eval' e s
+  ∎
+\end{code}
 \end{document}
- 
+   
