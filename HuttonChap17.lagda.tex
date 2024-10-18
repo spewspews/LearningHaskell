@@ -7,9 +7,13 @@
 \usepackage{unicode-math}
 \usepackage{fancyvrb}
 \usepackage{syntax}
-\usepackage{tikz}
+\usepackage{titlesec}
 
 \DefineVerbatimEnvironment{code}{Verbatim}{baselinestretch=.8, samepage=true}
+
+\titleformat{\section}{\scshape\Large}{\liningnums{\thesection}.\hspace{4pt}}{0em}{}
+\titleformat{\subsection}{\scshape\large}{\liningnums{\thesubsection}.\hspace{4pt}}{0em}{}
+\titlespacing{\section}{0em}{0em}{5pt}
 
 \setmainfont{Garamond Premier Pro}[Contextuals=AlternateOff, Numbers=OldStyle]
 \setmathfont{Libertinus Math}[Scale=MatchUppercase]
@@ -25,6 +29,11 @@
 module HuttonChap17 where
 open import Haskell.Prelude
 open import Haskell.Law.Equality using (sym; begin_; _≡⟨⟩_; step-≡; _∎; cong)
+\end{code}
+
+\section{Syntax and Semantics}
+
+\begin{code}
 data Expr : Set where
     Val : Int → Expr
     Add : Expr → Expr → Expr
@@ -34,7 +43,11 @@ eval : Expr → Int
 eval (Val n) = n
 eval (Add eₗ eᵣ) = eval eₗ + eval eᵣ
 {-# COMPILE AGDA2HS eval #-}
+\end{code}
 
+\section{Adding a Stack}
+
+\begin{code}
 Stack = List Int
 {-# COMPILE AGDA2HS Stack #-}
 
@@ -49,13 +62,15 @@ add (x ∷ y ∷ s) = y + x ∷ s
 {-# COMPILE AGDA2HS add #-}
 
 module DefineEval' where
-  eval'-val : (eval' : Expr → Stack → Stack)
-    → (eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s)
-    → (n : Int) → (s : Stack) → eval' (Val n) s ≡ push n s
-  eval'-val eval' eval'-eval n s =
+  postulate
+    eval' : Expr → Stack → Stack
+    eval'≡eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s
+
+  eval'-val : (n : Int) → (s : Stack) → eval' (Val n) s ≡ push n s
+  eval'-val n s =
     begin
       eval' (Val n) s
-    ≡⟨ eval'-eval (Val n) s ⟩ -- Specification
+    ≡⟨ eval'≡eval (Val n) s ⟩ -- Specification
       eval (Val n) ∷ s
     ≡⟨⟩ -- Apply eval
       n ∷ s
@@ -64,22 +79,22 @@ module DefineEval' where
     ∎
 \end{code}
 \begin{code}
-  eval'-add : (eval' : Expr → Stack → Stack)
-    → (eval'-eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s)
-    → (x y : Expr) → (s : Stack)
+  eval'-add : (x y : Expr) → (s : Stack)
     → eval' (Add x y) s ≡ add (eval' y (eval' x s))
-  eval'-add eval' eval'-eval x y s =
+\end{code}
+\begin{code}
+  eval'-add x y s =
     begin
       eval' (Add x y) s
-    ≡⟨ eval'-eval (Add x y) s ⟩ -- Specification
+    ≡⟨ eval'≡eval (Add x y) s ⟩ -- Specification
       eval (Add x y) ∷ s
     ≡⟨⟩ -- Apply eval
       eval x + eval y ∷ s
     ≡⟨⟩ -- Unapply add
       add (eval y ∷ eval x ∷ s)
-    ≡⟨ cong (λ s → add (eval y ∷ s)) (sym (eval'-eval x s)) ⟩ -- Induction
+    ≡⟨ cong (λ s → add (eval y ∷ s)) (sym (eval'≡eval x s)) ⟩ -- Induction
       add (eval y ∷ eval' x s)
-    ≡⟨ cong add (sym (eval'-eval y (eval' x s))) ⟩ -- Induction
+    ≡⟨ cong add (sym (eval'≡eval y (eval' x s))) ⟩ -- Induction
       add (eval' y (eval' x s))
     ∎
 \end{code}
@@ -88,7 +103,8 @@ eval' : Expr → Stack → Stack
 eval' (Val n) s = push n s
 eval' (Add eₗ eᵣ) s = add (eval' eᵣ (eval' eₗ s))
 {-# COMPILE AGDA2HS eval' #-}
-
+\end{code}
+\begin{code}
 eval'≡eval : (e : Expr) → (s : Stack) → eval' e s ≡ eval e ∷ s
 eval'≡eval (Val n) s = refl
 eval'≡eval (Add x y) s =
@@ -107,7 +123,8 @@ eval≡eval' : (e : Expr) → (s : Stack) → eval e ∷ s ≡ eval' e s
 eval≡eval' e s = sym $ eval'≡eval e s
 \end{code}
 
-Since \verb!eval' e s! is the same as \verb!eval e ∷ s!, this is evidence that \verb!eval' e s! is a non-empty list.
+\noindent
+Since \verb!eval' e s! is the same as \verb!eval e ∷ s!, this is evidence that \verb!eval' e s! is a non-empty list:
 
 \begin{code}
 open import Haskell.Prim using (NonEmpty; itsNonEmpty)
@@ -118,13 +135,17 @@ instance
   eval'-nonempty ⦃ e ⦄ = subst NonEmpty (eval≡eval' e []) itsNonEmpty
 \end{code}
 
-Knowing that it is non-empty and from the previous proof, \texttt{eval} is simply redefined by taking the head.
+\noindent
+Since we know that \verb!eval' e []! is always non-empty, it is safe to apply head to it and get an equivalent definition of \texttt{eval}:
 
 \begin{code}
 eval¹ : ⦃ Expr ⦄ → Int
 eval¹ ⦃ e ⦄ = head (eval' e [])
 {-# COMPILE AGDA2HS eval¹ #-}
 \end{code}
+
+\section{Adding a Continuation}
+
 \begin{code}
 Cont = Stack → Stack
 {-# COMPILE AGDA2HS Cont #-}
@@ -132,7 +153,7 @@ Cont = Stack → Stack
 module DefineEval'' where
   postulate
     eval'' : Expr → Cont → Cont
-    eval''-eval' : (e : Expr) → (c : Cont) → (s : Stack)
+    eval''≡eval' : (e : Expr) → (c : Cont) → (s : Stack)
       → eval'' e c s ≡ c (eval' e s)
 
   eval''-val : (n : Int) → (c : Cont) → (s : Stack)
@@ -140,25 +161,27 @@ module DefineEval'' where
   eval''-val n c s =
     begin
       eval'' (Val n) c s
-    ≡⟨ eval''-eval' (Val n) c s ⟩ -- Postulate
+    ≡⟨ eval''≡eval' (Val n) c s ⟩ -- Postulate
       c (eval' (Val n) s)
     ≡⟨⟩ -- Apply eval'
       c (push n s)
+    ≡⟨⟩ -- Unapply ∘
+      (c ∘ push n) s
     ∎
   eval''-add : (x y : Expr) → (c : Cont) → (s : Stack)
     → eval'' (Add x y) c s ≡ eval'' x (eval'' y (c ∘ add)) s
   eval''-add x y c s =
     begin
       eval'' (Add x y) c s
-    ≡⟨ eval''-eval' (Add x y) c s ⟩
+    ≡⟨ eval''≡eval' (Add x y) c s ⟩
       c (eval' (Add x y) s)
     ≡⟨⟩ -- Apply eval'
       c (add (eval' y (eval' x s)))
     ≡⟨⟩ -- Unapply ∘
       (c ∘ add) (eval' y (eval' x s))
-    ≡⟨ sym (eval''-eval' y (c ∘ add) (eval' x s)) ⟩ -- Induction y
+    ≡⟨ sym (eval''≡eval' y (c ∘ add) (eval' x s)) ⟩ -- Induction y
       eval'' y (c ∘ add) (eval' x s)
-    ≡⟨ sym (eval''-eval' x (eval'' y (c ∘ add)) s) ⟩ -- Induction x
+    ≡⟨ sym (eval''≡eval' x (eval'' y (c ∘ add)) s) ⟩ -- Induction x
       eval'' x (eval'' y (c ∘ add)) s
     ∎
 \end{code}
@@ -167,10 +190,13 @@ eval'' : Expr → Cont → Cont
 eval'' (Val n) c = c ∘ push n
 eval'' (Add x y) c = eval'' x (eval'' y (c ∘ add))
 {-# COMPILE AGDA2HS eval'' #-}
-
+\end{code}
+\begin{code}
 eval''≡eval' : (e : Expr) → (c : Cont) → (s : Stack)
   → eval'' e c s ≡ c (eval' e s)
 eval''≡eval' (Val x) c s = refl
+\end{code}
+\begin{code}
 eval''≡eval' (Add x y) c s =
   begin
     eval'' (Add x y) c s
@@ -185,6 +211,7 @@ eval''≡eval' (Add x y) c s =
   ∎
 \end{code}
 
+\noindent
 Thus \texttt{eval'} is simply redefined as follows:
 
 \begin{code}
@@ -192,6 +219,9 @@ eval'¹ : Expr → Cont
 eval'¹ e = eval'' e id
 {-# COMPILE AGDA2HS eval'¹ #-}
 \end{code}
+
+\section{Defunctionalising}
+
 \begin{code}
 haltC : Cont
 haltC = id
@@ -246,8 +276,8 @@ exec-comp'≡eval'' (Add x y) c =
   ∎
 \end{code}
 \begin{code}
-exec-comp≡eval : (e : Expr) → (s : Stack) → exec (comp e) s ≡ eval' e s
-exec-comp≡eval e s =
+exec-comp≡eval' : (e : Expr) → (s : Stack) → exec (comp e) s ≡ eval' e s
+exec-comp≡eval' e s =
   begin
     exec (comp e) s
   ≡⟨⟩ -- Apply comp
@@ -262,5 +292,89 @@ exec-comp≡eval e s =
     eval' e s
   ∎
 \end{code}
+
+\noindent
+Alternatively, explicitly with lists:
+
+\begin{code}
+data Op : Set where
+  PUSHOP : Int → Op
+  ADDOP : Op
+{-# COMPILE AGDA2HS Op #-}
+\end{code}
+\begin{code}
+Prog = List Op
+{-# COMPILE AGDA2HS Prog #-}
+\end{code}
+\begin{code}
+execute : Prog → Cont
+execute [] = haltC
+execute (PUSHOP n ∷ os) = pushC n (execute os)
+execute (ADDOP ∷ os) = addC (execute os)
+{-# COMPILE AGDA2HS execute #-}
+\end{code}
+\begin{code}
+compile' : Expr → Prog → Prog
+compile' (Val n) p = PUSHOP n ∷ p
+compile' (Add x y) p = compile' x (compile' y (ADDOP ∷ p))
+{-# COMPILE AGDA2HS compile' #-}
+\end{code}
+\begin{code}
+compile : Expr → Prog
+compile e = compile' e []
+{-# COMPILE AGDA2HS compile #-}
+\end{code}
+\begin{code}
+execute-compile'≡eval'' : (e : Expr) → (p : Prog)
+  → execute (compile' e p) ≡ eval'' e (execute p)
+execute-compile'≡eval'' (Val n) p = refl
+execute-compile'≡eval'' (Add x y) p =
+  begin
+    execute (compile' (Add x y) p)
+  ≡⟨⟩ -- Apply compile'
+    execute (compile' x (compile' y (ADDOP ∷ p)))
+  ≡⟨ execute-compile'≡eval'' x (compile' y (ADDOP ∷ p)) ⟩ -- Induction
+    eval'' x (execute (compile' y (ADDOP ∷ p)))
+  ≡⟨ cong (eval'' x) (execute-compile'≡eval'' y (ADDOP ∷ p)) ⟩
+    eval'' x (eval'' y (execute $ ADDOP ∷ p))
+  ≡⟨⟩ -- Apply execute
+    eval'' x (eval'' y (addC (execute p)))
+  ≡⟨⟩ -- apply addC
+    eval'' x (eval'' y ((execute p) ∘ add))
+  ≡⟨⟩ -- Unapply eval''
+    eval'' (Add x y) (execute p)
+  ∎
+\end{code}
+\begin{code}
+execute-compile≡eval' : (e : Expr) → (s : Stack)
+  → execute (compile e) s ≡ eval' e s
+execute-compile≡eval' e s =
+  begin
+    execute (compile e) s
+  ≡⟨⟩ -- Apply compile
+    execute (compile' e []) s
+  ≡⟨ cong (_$ s) (execute-compile'≡eval'' e []) ⟩
+    eval'' e (execute []) s
+  ≡⟨⟩ -- Apply execute
+    eval'' e haltC s
+  ≡⟨ eval''≡eval' e haltC s ⟩
+    haltC (eval' e s)
+  ≡⟨⟩ -- Apply haltC ≡ id
+    eval' e s
+  ∎
+
+execute-compile≡eval : (e : Expr) → (s : Stack)
+  → execute (compile e) s ≡ eval e ∷ s
+execute-compile≡eval e s =
+  begin
+    execute (compile e) s
+  ≡⟨ execute-compile≡eval' e s ⟩
+    eval' e s
+  ≡⟨ eval'≡eval e s ⟩
+    eval e ∷ s
+  ∎
+\end{code}
+
+\section{Combining the Steps}
 \end{document}
    
