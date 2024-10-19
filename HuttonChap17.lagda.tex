@@ -335,7 +335,7 @@ execute-compile'≡eval'' (Add x y) p =
     execute (compile' x (compile' y (ADDOP ∷ p)))
   ≡⟨ execute-compile'≡eval'' x (compile' y (ADDOP ∷ p)) ⟩ -- Induction
     eval'' x (execute (compile' y (ADDOP ∷ p)))
-  ≡⟨ cong (eval'' x) (execute-compile'≡eval'' y (ADDOP ∷ p)) ⟩
+  ≡⟨ cong (eval'' x) (execute-compile'≡eval'' y (ADDOP ∷ p)) ⟩ -- Induction
     eval'' x (eval'' y (execute $ ADDOP ∷ p))
   ≡⟨⟩ -- Apply execute
     eval'' x (eval'' y (addC (execute p)))
