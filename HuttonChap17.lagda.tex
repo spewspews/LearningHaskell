@@ -135,7 +135,7 @@ Since \verb!eval' e s! is the same as \verb!eval e ∷ s!, this is evidence that
 \end{code}
 
 \noindent
-Since we know that \verb!eval' e []! is always non-empty, it is safe to apply head to it and get an equivalent definition of \texttt{eval}:
+Since we know that \verb!eval' e []! is always non-empty, it is allowed to apply head to it in order to get an equivalent definition of \texttt{eval}:
 
 \begin{code}
   eval¹ : Expr → Int
