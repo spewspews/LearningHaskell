@@ -122,8 +122,6 @@ module AddingAStack where
     ≡⟨⟩ -- Unapply add and eval
       eval (Add x y) ∷ s
     ∎
-  eval≡eval' : (e : Expr) → (s : Stack) → eval e ∷ s ≡ eval' e s
-  eval≡eval' e s = sym $ eval'≡eval e s
 \end{code}
 
 \noindent
@@ -131,19 +129,17 @@ Since \verb!eval' e s! is the same as \verb!eval e ∷ s!, this is evidence that
 
 \begin{code}
   open import Haskell.Prim using (NonEmpty; itsNonEmpty)
-  open import Haskell.Law.Equality using (subst)
 
-  instance
-    eval'-nonempty : ⦃ e : Expr ⦄ → NonEmpty (eval' e [])
-    eval'-nonempty ⦃ e ⦄ = subst NonEmpty (eval≡eval' e []) itsNonEmpty
+  eval'-nonempty : (e : Expr) → (s : Stack) → NonEmpty (eval' e s)
+  eval'-nonempty e s rewrite eval'≡eval e s = itsNonEmpty
 \end{code}
 
 \noindent
 Since we know that \verb!eval' e []! is always non-empty, it is safe to apply head to it and get an equivalent definition of \texttt{eval}:
 
 \begin{code}
-  eval¹ : ⦃ Expr ⦄ → Int
-  eval¹ ⦃ e ⦄ = head (eval' e [])
+  eval¹ : Expr → Int
+  eval¹ e = head (eval' e []) ⦃ eval'-nonempty e [] ⦄
   {-# COMPILE AGDA2HS eval¹ #-}
 \end{code}
 
