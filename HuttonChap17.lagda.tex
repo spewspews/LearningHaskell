@@ -385,7 +385,7 @@ Alternatively, explicitly with lists:
 
 \begin{code}
 module CombiningTheSteps where
-  open SyntaxAndSemantics using (Expr; eval)
+  open SyntaxAndSemantics using (Expr; Val; Add; eval)
   open AddingAStack using (Stack)
   module DefineComp where
     postulate
@@ -397,7 +397,22 @@ module CombiningTheSteps where
         → exec (comp e) s ≡ eval e ∷ s
       exec-comp'≡eval : (e : Expr) → (c : Code) → (s : Stack)
         → exec (comp' e c) s ≡ exec c (eval e ∷ s)
+      {- Postulates discovered for exec-comp'-val -}
+      PUSH : Int → Code → Code
+      exec-push : (n : Int) → (c : Code) → (s : Stack)
+        → exec (PUSH n c) s ≡ exec c (n ∷ s)
 
+    exec-comp'-val : (n : Int) → (c : Code) → (s : Stack)
+      → exec (comp' (Val n) c) s ≡ exec (PUSH n c) s
+    exec-comp'-val n c s =
+      begin
+        exec (comp' (Val n) c) s
+      ≡⟨ exec-comp'≡eval (Val n) c s ⟩ -- Postulate
+        exec c (eval (Val n) ∷ s)
+      ≡⟨⟩ -- Apply eval
+        exec c (n ∷ s)
+      ≡⟨ sym (exec-push n c s) ⟩ -- Unapply exec
+        exec (PUSH n c) s
+      ∎
 \end{code}
 \end{document}
-   
