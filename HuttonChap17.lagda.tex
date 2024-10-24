@@ -414,5 +414,21 @@ module CombiningTheSteps where
       ≡⟨ sym (exec-push n c s) ⟩ -- Unapply exec
         exec (PUSH n c) s
       ∎
+
+    exec-comp'-add : (x y : Expr) → (c : Code) → (s : Stack)
+      → exec (comp' (Add x y) c) s ≡ exec {!   !} s
+    exec-comp'-add x y c s =
+      begin
+        exec (comp' (Add x y) c) s
+      ≡⟨ {!   !} ⟩
+        exec {!   !} s
+      ∎
+  
+  data Code : Set where
+    PUSH : Int → Code → Code
+
+  comp' : Expr → Code → Code
+  comp' (Val n) c = PUSH n c
+  comp' (Add x y) c = {!   !}
 \end{code}
 \end{document}
