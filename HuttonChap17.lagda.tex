@@ -401,7 +401,15 @@ module CombiningTheSteps where
       PUSH : Int → Code → Code
       exec-push : (n : Int) → (c : Code) → (s : Stack)
         → exec (PUSH n c) s ≡ exec c (n ∷ s)
-
+      {- Postulates discovered for exec-comp'-add -}
+      ADD : Code → Code
+      exec-add : (n m : Int) → (c : Code) → (s : Stack)
+        → exec (ADD c) (m ∷ n ∷ s) ≡ exec c (n + m ∷ s)
+      {- Postulates discovered for exec-comp -}
+      HALT : Code
+      exec-halt : (s : Stack) → exec HALT s ≡ s
+\end{code}
+\begin{code}
     exec-comp'-val : (n : Int) → (c : Code) → (s : Stack)
       → exec (comp' (Val n) c) s ≡ exec (PUSH n c) s
     exec-comp'-val n c s =
@@ -414,21 +422,84 @@ module CombiningTheSteps where
       ≡⟨ sym (exec-push n c s) ⟩ -- Unapply exec
         exec (PUSH n c) s
       ∎
-
+\end{code}
+\begin{code}
     exec-comp'-add : (x y : Expr) → (c : Code) → (s : Stack)
-      → exec (comp' (Add x y) c) s ≡ exec {!   !} s
+      → exec (comp' (Add x y) c) s ≡ exec (comp' x (comp' y (ADD c))) s
     exec-comp'-add x y c s =
       begin
         exec (comp' (Add x y) c) s
-      ≡⟨ {!   !} ⟩
-        exec {!   !} s
+      ≡⟨ exec-comp'≡eval (Add x y) c s ⟩ -- Postulate
+        exec c (eval (Add x y) ∷ s)
+      ≡⟨⟩ -- Apply eval
+        exec c (eval x + eval y ∷ s)
+      ≡⟨ sym (exec-add (eval x) (eval y) c s) ⟩ -- Unapply exec
+        exec (ADD c) (eval y ∷ eval x ∷ s)
+      ≡⟨ sym (exec-comp'≡eval y (ADD c) (eval x ∷ s)) ⟩ -- Induction
+        exec (comp' y (ADD c)) (eval x ∷ s)
+      ≡⟨ sym (exec-comp'≡eval x (comp' y (ADD c)) s) ⟩
+        exec (comp' x (comp' y (ADD c))) s
       ∎
-  
+\end{code}
+\begin{code}
+    exec-comp : (e : Expr) → (s : Stack)
+      → exec (comp e) s ≡ exec (comp' e HALT) s
+    exec-comp e s =
+      begin
+        exec (comp e) s
+      ≡⟨ exec-comp≡eval e s ⟩ -- Postulate
+        eval e ∷ s
+      ≡⟨ sym (exec-halt (eval e ∷ s)) ⟩ -- Unapply exec
+        exec HALT (eval e ∷ s)
+      ≡⟨ sym (exec-comp'≡eval e HALT s) ⟩ -- Unapply exec
+        exec (comp' e HALT) s
+      ∎
+\end{code}
+\begin{code}
   data Code : Set where
+    HALT : Code
     PUSH : Int → Code → Code
-
+    ADD : Code → Code
+\end{code}
+\begin{code}
   comp' : Expr → Code → Code
   comp' (Val n) c = PUSH n c
-  comp' (Add x y) c = {!   !}
+  comp' (Add x y) c = comp' x $ comp' y $ ADD c
+\end{code}
+\begin{code}
+  comp : Expr → Code
+  comp e = comp' e HALT
+\end{code}
+\begin{code}
+  exec : Code → Stack → Stack
+  exec HALT s = s
+  exec (PUSH n c) s = exec c (n ∷ s)
+  exec (ADD _) [] = []
+  exec (ADD _) (_ ∷ []) = []
+  exec (ADD c) (m ∷ n ∷ s) = exec c (n + m ∷ s)
+\end{code}
+
+\textsc{Exercise 1}.
+
+\begin{code}
+module Exercise1 where
+  data Exprx : Set where
+    Valx : Int → Exprx
+    Addx : Exprx → Exprx → Exprx
+    Throwx : Exprx
+    Catchx : Exprx → Exprx → Exprx
+  {-# COMPILE AGDA2HS Exprx #-}
+
+  evalx : Exprx → Maybe Int
+  evalx (Valx n) = Just n
+  evalx (Addx x y) = do
+    n ← evalx x
+    m ← evalx y
+    return $ n + m
+  evalx Throwx = Nothing
+  evalx (Catchx x h) = case evalx x of λ where
+    (Just n) → Just n
+    Nothing → evalx h
+  {-# COMPILE AGDA2HS evalx #-}
 \end{code}
 \end{document}
